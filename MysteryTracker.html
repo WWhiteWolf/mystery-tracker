@@ -185,8 +185,9 @@
         .table-wrap { flex:1; background:var(--surface); border:1.5px solid var(--gold); border-radius:var(--radius); overflow-y:auto; box-shadow:var(--shadow); display:flex; flex-direction:column; }
         table { width:100%; border-collapse:collapse; font-size:0.85rem; flex:1; }
         /* Info Bar retired — Game Log now spans the full right side. */
-        .right-col  { grid-column:2; grid-row:1; display:flex; flex-direction:column; gap:6px; min-height:0; }
-        .notes-row  { grid-column:2; grid-row:2; }
+        /* M11/06: Notes row removed — right-col now spans both rows of .outer-layout
+           so the Log (and the Guide / Rules overlays) reclaim the freed vertical space. */
+        .right-col  { grid-column:2; grid-row:1 / 3; display:flex; flex-direction:column; gap:6px; min-height:0; }
 
         /* ── LOG PANEL grows to fill ── */
         .log-panel { flex:1; min-height:0; background:var(--surface); border:1.5px solid var(--gold); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column; }
@@ -356,8 +357,7 @@
         .pc0 { color:#c0392b; } .pc1 { color:#2471a3; } .pc2 { color:#1e8449; }
         .pc3 { color:#7d3c98; } .pc4 { color:#b7950b; } .pc5 { color:#117a65; }
 
-        textarea.notes { width:100%; min-height:90px; background:var(--bg); border:none; color:var(--text); font-family:'Lora',serif; font-size:0.85rem; padding:7px; resize:vertical; outline:none; line-height:1.7; }
-        textarea.notes::placeholder { color:var(--text-muted); font-style:italic; }
+        /* M11/06: textarea.notes / .notes-bar styles removed with the Notes panel. */
         .save-row { display:flex; gap:6px; flex-wrap:wrap; }
         .status-msg { font-size:0.75rem; color:var(--green); font-style:italic; margin-top:4px; min-height:13px; }
 
@@ -375,7 +375,9 @@
         .banner-actions .ibc-mode.mode-shownme { color:var(--green); font-weight:600; font-style:normal; }
 
         /* ── M6: GUIDE & RULES OVERLAY PANELS (re-added; lost in cleanup pass) ──
-           Cover ONLY the right-col (the Log column). Grid + notes stay visible. */
+           Cover the right-col fully (top of the Log down to the grid bottom). The
+           grid stays visible. M11/06: Notes panel removed; the overlay now fills
+           the entire right-column height. */
         .right-col { position: relative; }
         .overlay-panel {
             /* Start below the Next button extension (right-col padding-top) so the
@@ -438,10 +440,7 @@
         .rules-saved-flash.show { opacity: 1; }
 
         /* ── NOTES BAR (spans both panel columns) ── */
-        .notes-bar { flex-shrink:0; background:var(--surface); border:1.5px solid var(--gold); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
-        .notes-bar .panel-head { font-family:'Playfair Display',serif; font-size:0.88rem; color:var(--on-gold-dk); background:var(--gold-dk); padding:5px 10px; }
-        .notes-bar textarea.notes { width:100%; height:200px; background:var(--surface); border:none; color:var(--text); font-family:'Lora',serif; font-size:0.98rem; padding:5px 8px; resize:none; outline:none; line-height:1.7; display:block; }
-        .notes-bar textarea.notes::placeholder { color:var(--text-muted); font-style:italic; }
+        /* M11/06: .notes-bar styles removed with the Notes panel. */
 
         /* ═══════════════════════════════════════════════════════════ */
         /* ── M1 V5.0: NEW HEADER LAYOUT ────────────────────────────── */
@@ -696,6 +695,47 @@
         thead th.col-hidden,
         td.col-hidden { display:none !important; }
 
+        /* ── M11/08: HIDE MUTED ROWS in Step 5 + Play (same trigger as col-hidden).
+              Steps 1-4 keep muted rows visible (greyed) so the user can un-mute. ── */
+        tr.row-hidden { display:none !important; }
+
+        /* ── M11/10: Soft tint for player×card cells with a ✓ or ✗. Pure visual.
+              The opacity is low enough that the cell glyph still reads cleanly, and
+              the existing outlines (active-turn, pending-ask, asked-has-card) sit
+              on top via outline-offset and remain visible. ── */
+        td.cell-check { background-color: rgba( 38, 145,  72, 0.62) !important; }
+        td.cell-cross { background-color: rgba(192,  57,  43, 0.52) !important; }
+
+        /* ── M11/09: SPACIOUS TABLE MODE (~30% bigger) — applied to <table> when
+              hide-mode is active. Bumps row height and the text inside cells, card
+              names, and player headers so the working grid is easier to read once
+              empty columns and muted rows have dropped away. ── */
+        table.table-spacious                       { font-size: 1.10rem; }
+        /* M11/09 calibration: per Patrick after first test — cells were pushing
+           the bottom of the grid past the viewport. Padding-top/bottom bump
+           dropped; the text-size bumps stay so the glyphs are still bigger. */
+        table.table-spacious .cell-inner           { font-size: 1.00rem; gap: 2px 4px; }
+        table.table-spacious .sym-check            { font-size: 1.25rem; }
+        table.table-spacious .sym-cross            { font-size: 1.18rem; }
+        table.table-spacious .sym-asked,
+        table.table-spacious .sym-showed,
+        table.table-spacious .sym-shownme          { font-size: 0.90rem; padding: 2px 4px; }
+        table.table-spacious .sym-meshowed         { font-size: 0.85rem; }
+        table.table-spacious thead th              { font-size: 1.00rem; }
+        table.table-spacious .ph                   { font-size: 1.00rem; }
+        table.table-spacious .cc,
+        table.table-spacious .cc-display           { font-size: 0.92rem; }
+        table.table-spacious tbody th[data-card]   { font-size: 1.00rem; }
+        table.table-spacious .room-check           { font-size: 1.25rem; }
+        table.table-spacious .sum-x                { font-size: 1.30rem; }
+        table.table-spacious .sum-star             { width: 18px; height: 18px; }
+        /* Σ and 🏠 columns keep their narrow width so the player cells get the
+           extra horizontal room. */
+        table.table-spacious thead th.sum-col,
+        table.table-spacious td.sum-col            { font-size: 1.10rem; }
+        table.table-spacious thead th.room-col     { font-size: 1.05rem; }
+
+
         /* ── M2: MUTED ROWS (active/inactive cards & categories) ── */
         tr.row-muted td, tr.row-muted th { opacity:0.35; filter:saturate(0.5); }
         tr.row-muted td.sum-col, tr.row-muted td.room-col, tr.row-muted td[data-col] { background:var(--col-blank-locked-bg) !important; }
@@ -856,11 +896,8 @@
         </div>
     </div>
 
-    <!-- NOTES ROW: column 2, row 2 — under the Log -->
-    <div class="notes-row notes-bar">
-        <div class="panel-head">📝 Notes</div>
-        <textarea class="notes" id="notesArea" placeholder="Jot deductions here..."></textarea>
-    </div>
+    <!-- M11/06: Notes panel removed. The right column (Log + Guide/Rules
+         overlays) now spans both rows of .outer-layout for full height. -->
 
 </div><!-- end outer-layout -->
 
@@ -1602,6 +1639,11 @@ function renderCell(card, col) {
     const inner = td.querySelector('.cell-inner');
     inner.innerHTML = '';
 
+    // M11/10: Pure-visual tint — ✓ cells get a soft green, ✗ cells get a
+    //   soft red. ✓ wins if both flags are somehow set. No engine touch.
+    td.classList.toggle('cell-check', !!s.check);
+    td.classList.toggle('cell-cross', !!s.cross && !s.check);
+
     // M11/01: Per-cell mini-notes removed — right-click now drives the manual
     // mark cycle (see onCellRightClickManual). Nothing to render here.
 
@@ -1825,6 +1867,9 @@ function applyAnswerLock() {
 // M10/05: during Setup Step 5 (and onward) and during Play, empty/inactive columns
 //   are also HIDDEN entirely via .col-hidden. Setup Steps 1-4 still show all 6 so
 //   the user sees every available slot.
+// M11/08 + M11/09: in the same hide-mode trigger, also drop muted category & card
+//   rows from the grid and switch the table into spacious mode so the remaining
+//   active rows + text are ~30% bigger.
 function applyBlankColLock() {
     const hideMode = (gamePhase === 'play') || (gamePhase === 'setup' && setupStep >= 5);
     const names    = getPlayerNames();
@@ -1842,6 +1887,24 @@ function applyBlankColLock() {
             tds.forEach(td => { td.classList.remove('col-blank-locked'); td.classList.remove('col-hidden'); });
         }
     }
+
+    // M11/08: hide muted category banner rows + their card rows + individually
+    //   muted card rows when hide-mode is on. Steps 1-4 keep them visible (greyed).
+    document.querySelectorAll('tr.cat-row').forEach(row => {
+        const catIdx = parseInt(row.dataset.catIdx);
+        const muted  = mutedCategoryIdxs.has(catIdx);
+        row.classList.toggle('row-hidden', hideMode && muted);
+    });
+    document.querySelectorAll('tr[data-card]').forEach(row => {
+        const card   = row.dataset.card;
+        const catIdx = parseInt(row.dataset.catIdx);
+        const muted  = mutedCards.has(card) || mutedCategoryIdxs.has(catIdx);
+        row.classList.toggle('row-hidden', hideMode && muted);
+    });
+
+    // M11/09: spacious table mode tracks the same hide-mode flag.
+    const table = document.getElementById('clueTable');
+    if (table) table.classList.toggle('table-spacious', hideMode);
 }
 
 function applyActiveTurnStyling() {
@@ -2998,7 +3061,7 @@ function applyHeaderNames(n) { n.forEach((v,i)=>{ const el=document.getElementBy
 
 function getSnapshot() {
     return { cellState, gameLog, turnOrder, turnStep, turnCount, meCol, meOriginalName, gamePhase,
-             headerNames: getHeaderNames(), notes: document.getElementById('notesArea').value,
+             headerNames: getHeaderNames(),  /* M11/06: notes field dropped */
              solutionCards: [...solutionCards],
              // M2 fixed 4×30 grid + active/muted state
              categories: CATEGORIES.map(c => ({ name:c.name, cards:[...c.cards] })),
@@ -3096,7 +3159,7 @@ function applySnapshot(d) {
     meOriginalName = (typeof d.meOriginalName === 'string') ? d.meOriginalName : '';
     gamePhase    = d.gamePhase    || 'setup';
     solutionCards= new Set(d.solutionCards || []);
-    document.getElementById('notesArea').value = d.notes || '';
+    /* M11/06: notes restoration removed with the Notes panel. */
     applyHeaderNames(d.headerNames || []);
     undoStack = []; typingUndoStack = [];
 
@@ -3199,7 +3262,7 @@ function _doNewGame(opts) {
     refreshNicknameDisplays();
     for(let c=0;c<MAX_PLAYERS;c++){ const th=document.getElementById('th'+c); if(th){ th.classList.remove('me-col'); th.classList.remove('in-play'); th.classList.remove('player-out'); th.classList.remove('player-wrongacc'); } }
     clearPending();
-    document.getElementById('notesArea').value='';
+    /* M11/06: Notes panel removed; no textarea to clear. */
     buildTable(); updateCardLabels(); updateCategoryBanners();
     updateDeckBarVisibility();
     // M10/05-fix: column-state classes (me-col, inactive, hidden, out-badges) must
@@ -3399,7 +3462,7 @@ function updateButtonStates() {
     }
 }
 
-document.getElementById('notesArea').addEventListener('input', autoSave);
+/* M11/06: notesArea input listener removed with the Notes panel. */
 // M6: Rules textarea autosaves per-deck-slot to its own localStorage key.
 document.getElementById('rulesArea').addEventListener('input', saveRulesForCurrentDeck);
 
