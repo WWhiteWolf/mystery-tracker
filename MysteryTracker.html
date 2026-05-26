@@ -668,16 +668,8 @@
         thead th.in-play .header-inner input.cc { display:none; }
         thead th.in-play .header-inner .cc-display { display:inline; }
 
-        /* ── M4: PER-CELL MINI-NOTES (right-click any player cell) ── */
-        .cell-inner { position:relative; }
-        .cell-note {
-            position:absolute; bottom:0px; right:1px;
-            font-size:0.6rem; line-height:1; font-family:'Lora',serif;
-            color:var(--gold-dk); font-style:italic; background:rgba(255,248,232,0.85);
-            border-radius:2px; padding:0 2px;
-            max-width:calc(100% - 4px); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-            pointer-events:none;
-        }
+        /* ── M11/01: M4 per-cell mini-notes removed. Right-click on a player×card
+              cell is now the manual mark cycle (blank → ✗ → ✓ → return-to-auto). ── */
 
         /* ── M4: SUMMARY COLUMN (∑) — manual ✕ / ★ marks (vibrant red X, vibrant green star) ── */
         td.sum-col { cursor:pointer; }
@@ -706,7 +698,7 @@
 
         /* ── M2: MUTED ROWS (active/inactive cards & categories) ── */
         tr.row-muted td, tr.row-muted th { opacity:0.35; filter:saturate(0.5); }
-        tr.row-muted td.sum-col, tr.row-muted td[data-col] { background:var(--col-blank-locked-bg) !important; }
+        tr.row-muted td.sum-col, tr.row-muted td.room-col, tr.row-muted td[data-col] { background:var(--col-blank-locked-bg) !important; }
         tr.row-muted:hover td, tr.row-muted:hover th { opacity:0.5; }
         tr.row-muted .card-name-input, tr.row-muted .cat-name-input { cursor:text; }
         /* Subtle hint that the row is double-clickable to toggle */
@@ -746,6 +738,12 @@
         thead th.sum-col { background:var(--gold); color:var(--on-gold-dk); border-left:2px solid var(--gold); border-right:2px solid #9a6e2a96; width:22px; min-width:22px; max-width:22px; cursor:default; font-size:0.95rem; padding:4px 1px; }
         td.sum-col { background:var(--surface) !important; border-left:2px solid var(--gold); border-right:2px solid #9a6e2a96; width:22px; min-width:22px; max-width:22px; cursor:default; padding:2px 1px; }
         td.sum-col:hover { background:var(--surface) !important; }
+
+        /* ── M11/03: ROOM COLUMN — 2-player variant face-down-cards tracker ── */
+        thead th.room-col { background:var(--gold); color:var(--on-gold-dk); border-left:2px solid #9a6e2a96; border-right:2px solid var(--gold); width:24px; min-width:24px; max-width:24px; cursor:default; font-size:0.9rem; padding:4px 1px; }
+        td.room-col { background:var(--surface) !important; border-left:2px solid #9a6e2a96; border-right:2px solid var(--gold); width:24px; min-width:24px; max-width:24px; cursor:pointer; padding:2px 1px; text-align:center; vertical-align:middle; }
+        td.room-col:hover { background:var(--bg2) !important; }
+        .room-check { color:var(--mark-check-fg); font-size:1rem; font-weight:700; line-height:1; }
 
     </style>
 </head>
@@ -810,6 +808,7 @@
                     <tr id="headerRow">
                         <th>Card</th>
                         <th class="sum-col" title="Summary (auto-fill arrives in M5)">∑</th>
+                        <th class="room-col" title="Room — for the 2-player variant where cards lie face-down on the board. Click to mark a card you've seen in a room (it can't be the secret, and no player holds it).">🏠</th>
                         <th id="th0"><div class="header-inner"><input class="ph" id="p1h" type="text" placeholder="Player 1" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p1c" type="text" maxlength="4" placeholder="?" spellcheck="false" oninput="onNicknameChange(0)"><span class="cc-display" id="p1cd"></span><span>)</span><span class="player-out-badge" title="Player is out"></span></div></th>
                         <th id="th1"><div class="header-inner"><input class="ph" id="p2h" type="text" placeholder="Player 2" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p2c" type="text" maxlength="4" placeholder="?" spellcheck="false" oninput="onNicknameChange(1)"><span class="cc-display" id="p2cd"></span><span>)</span><span class="player-out-badge" title="Player is out"></span></div></th>
                         <th id="th2"><div class="header-inner"><input class="ph" id="p3h" type="text" placeholder="Player 3" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p3c" type="text" maxlength="4" placeholder="?" spellcheck="false" oninput="onNicknameChange(2)"><span class="cc-display" id="p3cd"></span><span>)</span><span class="player-out-badge" title="Player is out"></span></div></th>
@@ -1099,6 +1098,10 @@ function markCell(card, col, type, extra = {}) {
     if (!cs) return;
     if (!Array.isArray(cs.marks)) cs.marks = [];
     if ((type === 'check' || type === 'cross') && cs.marks.some(m => m.type === type)) return;
+    // M11/01: While a cell is under a manual override (cycle in progress),
+    // never let the engine add a contradicting check/cross. Manual wins.
+    if (cs.manualStage && (type === 'check' || type === 'cross') &&
+        cs.marks.some(m => (m.type === 'check' || m.type === 'cross') && m.manual)) return;
     // Mobile parity: once a ✓ or ✗ is on the cell (any turn tag), no further "!" (showed)
     // marks land — the confirmed yes/no already tells the story; "!" would be noise.
     // "?" still stacks normally — recording that the cell was asked again is useful history.
@@ -1128,6 +1131,189 @@ function recomputeCellBooleans(card, col) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// M11/01 + M11/04: MANUAL MARK CYCLE (right-click on a player×card cell)
+//
+// Each right-click advances a 4-state cycle on the cell's DISPLAY ONLY:
+//     null → 'blank' → 'cross' → 'check' → null (return to auto-engine state)
+// • No row propagation happens during the cycle — just this one cell's glyph
+//   updates. The engine's deductions on other cells stay untouched while you
+//   click around.
+// • Propagation runs on COMMIT, which fires on mouseleave (commitManualCycle).
+//   If your final state differs from the cell's pre-cycle engine state, the
+//   commit propagates (✓ runs the row sweep) and the log entry is added.
+// • If your final state matches the pre-cycle state, the commit is a no-op:
+//   no propagation, no log entry, any prior commit's propagation is undone.
+// • cs.manualUndoList carries the cells we ✗'d on the previous commit so we
+//   can revert them on a future cycle's first right-click.
+// ═══════════════════════════════════════════════════════════════════
+function cycleManualMark(card, col) {
+    const cs = cellState[card] && cellState[card][col];
+    if (!cs) return;
+    // Guard rails — match the gameplay-cell rules.
+    if (gamePhase !== 'play') return;
+    if (col === meCol) return;                   // Me column is off-limits
+    if (!turnOrder.includes(col)) return;        // inactive (Out) column
+    if (mutedCards.has(card)) return;            // muted card row
+
+    // First right-click of a new cycle (no active stage): reset the row by
+    // undoing any prior committed propagation, and snapshot/restore the
+    // engine baseline for THIS cell.
+    if (cs.manualStage === undefined || cs.manualStage === null) {
+        if (cs.manualUndoList && cs.manualUndoList.length) {
+            cs.manualUndoList.forEach(undoEntry);
+            cs.manualUndoList = null;
+        }
+        if (!cs.manualSnapshot) {
+            cs.manualSnapshot = snapshotCell(cs);
+        } else {
+            applyCellSnapshot(cs, cs.manualSnapshot);
+        }
+    }
+
+    // Advance the stage and update the cell glyph only — no row sweep.
+    const stage = cs.manualStage || null;
+    let nextStage;
+    if (stage === null) {
+        // engine snapshot → blank
+        cs.marks = (cs.marks || []).filter(m => m.type !== 'check' && m.type !== 'cross');
+        cs.check = false; cs.cross = false;
+        nextStage = 'blank';
+    } else if (stage === 'blank') {
+        cs.marks = (cs.marks || []).filter(m => m.type !== 'check' && m.type !== 'cross');
+        cs.marks.push({ type: 'cross', turn: currentTurnTag(), manual: true });
+        cs.cross = true; cs.check = false;
+        nextStage = 'cross';
+    } else if (stage === 'cross') {
+        cs.marks = (cs.marks || []).filter(m => m.type !== 'check' && m.type !== 'cross');
+        cs.marks.push({ type: 'check', turn: currentTurnTag(), manual: true });
+        cs.check = true; cs.cross = false;
+        nextStage = 'check';
+    } else if (stage === 'check') {
+        // back to engine snapshot
+        applyCellSnapshot(cs, cs.manualSnapshot);
+        nextStage = null;
+    }
+    cs.manualStage = nextStage;
+    renderCell(card, col);
+    renderSummaryCell(card);
+    autoSave();
+}
+
+// Commit fires when the user's mouse leaves the cell during a cycle. We
+// compare the final cell state to the engine snapshot and either propagate
+// (now ✓), drop everything (same as engine), or just log+keep (now ✗/blank
+// without propagation).
+function commitManualCycle(card, col) {
+    const cs = cellState[card] && cellState[card][col];
+    if (!cs) return;
+    if (cs.manualStage === undefined) return; // no active cycle
+
+    const snap = cs.manualSnapshot;
+    if (!snap) { cs.manualStage = undefined; return; }
+
+    const changed = (cs.check !== snap.check) || (cs.cross !== snap.cross);
+
+    if (!changed) {
+        // Full revert. Drop log, undo any prior propagation, clear all state.
+        if (cs.manualUndoList && cs.manualUndoList.length) {
+            cs.manualUndoList.forEach(undoEntry);
+            cs.manualUndoList = null;
+        }
+        logManualMark(card, col, 'revert');
+        cs.manualStage = undefined;
+        cs.manualSnapshot = null;
+        renderSummaryCell(card);
+        renderFullLog();
+        autoSave();
+        return;
+    }
+
+    // Final state differs from snapshot. Undo any previous propagation first,
+    // so a re-cycle from ✓ → blank cleanly clears the prior row sweep.
+    if (cs.manualUndoList && cs.manualUndoList.length) {
+        cs.manualUndoList.forEach(undoEntry);
+        cs.manualUndoList = null;
+    }
+
+    // If we're committing a ✓, run the row sweep and capture an undoList.
+    if (cs.check) {
+        cs.manualUndoList = propagateRowCross(card, col);
+    }
+
+    const action = cs.check ? 'check' : (cs.cross ? 'cross' : 'blank');
+    logManualMark(card, col, action);
+
+    cs.manualStage = undefined;  // cycle complete; snapshot+undoList persist
+    renderSummaryCell(card);
+    renderFullLog();
+    autoSave();
+}
+
+// ─── Cell snapshot / restore helpers (shared by manual-cycle and undo) ───
+function snapshotCell(cs) {
+    return {
+        check:      cs.check,      cross:     cs.cross,
+        asked:      cs.asked,      showed:    cs.showed,
+        shownToMe:  cs.shownToMe,  meShowedTo: cs.meShowedTo,
+        iShowedMe:  cs.iShowedMe,
+        marks:      (cs.marks || []).map(m => ({ ...m })),
+    };
+}
+function applyCellSnapshot(cs, snap) {
+    cs.check      = snap.check;
+    cs.cross      = snap.cross;
+    cs.asked      = snap.asked;
+    cs.showed     = snap.showed;
+    cs.shownToMe  = snap.shownToMe;
+    cs.meShowedTo = snap.meShowedTo;
+    cs.iShowedMe  = snap.iShowedMe;
+    cs.marks      = snap.marks.map(m => ({ ...m }));
+}
+function undoEntry(entry) {
+    const target = cellState[entry.card] && cellState[entry.card][entry.col];
+    if (!target) return;
+    applyCellSnapshot(target, entry.old);
+    renderCell(entry.card, entry.col);
+}
+
+// Apply ✗ across the rest of the player row for `card`, capture an undo list.
+// Used by both manual ✓ commit (M11/01) and room ✓ commit (M11/03), so a
+// later revert can roll the row back precisely.
+function propagateRowCross(card, sourceCol) {
+    const undoList = [];
+    turnOrder.forEach(c => {
+        if (c === sourceCol)         return;
+        if (c === meCol)             return;
+        if (isQuit(c))               return;
+        const s = cellState[card] && cellState[card][c];
+        if (!s) return;
+        if (s.shownToMe || s.check || s.cross) return;
+        undoList.push({ card, col: c, old: snapshotCell(s) });
+        markCell(card, c, 'cross');
+        renderCell(card, c);
+    });
+    return undoList;
+}
+
+// M11/01: Keep only the active manual mark per cell in the Log. Each call
+// strips any prior manual entry for this {card, col}, then (unless the
+// action is 'revert') pushes the new one. A revert leaves no entry — the
+// cell has no active manual override anymore.
+function logManualMark(card, col, action) {
+    gameLog = gameLog.filter(e => !(e.manual && e.manualCard === card && e.playerIdx === col));
+    if (action === 'revert') return;
+    gameLog.push({
+        turn: turnCount,
+        playerIdx: col,
+        player: getColName(col),
+        isMe: (col === meCol),
+        manual: true,
+        manualAction: action,  // 'blank' | 'cross' | 'check'
+        manualCard: card,
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // BUILD TABLE
 // ═══════════════════════════════════════════════════════════════════
 function buildTable() {
@@ -1151,7 +1337,8 @@ function buildTable() {
         hRow.appendChild(hTd);
         const hBlank = document.createElement('td');
         hBlank.className = 'cat-blank ' + catClass;
-        hBlank.colSpan = 7;
+        // M11/03: bumped 7→8 to span the new Room column (sits between ∑ and players).
+        hBlank.colSpan = 8;
         hRow.appendChild(hBlank);
         hRow.addEventListener('contextmenu', e => onContextMenu(e, { kind:'banner', catIdx }));
         tbody.appendChild(hRow);
@@ -1190,6 +1377,29 @@ function buildTable() {
             });
             row.appendChild(sumTd);
 
+            // M11/03: Room column — narrow, sits immediately RIGHT of ∑.
+            //   Binary toggle: blank ↔ √. When √, the engine treats the card as
+            //   on the board in a 2-player-variant room: nobody holds it, and
+            //   it's not the secret answer. Play mode only — clicks in Setup
+            //   do nothing (matching ∑'s behavior).
+            const roomTd = document.createElement('td');
+            roomTd.className = 'room-col';
+            roomTd.dataset.card = card;
+            const roomInner = document.createElement('div'); roomInner.className = 'cell-inner';
+            roomTd.appendChild(roomInner);
+            roomTd.addEventListener('click', () => {
+                if (gamePhase !== 'play') return;
+                if (mutedCards.has(card)) return;
+                toggleRoomDisplay(card);
+            });
+            // M11/04: Commit the room cycle on mouseleave — propagation and
+            //   log entry land here, not on the click.
+            roomTd.addEventListener('mouseleave', () => {
+                if (gamePhase !== 'play') return;
+                commitRoomCycle(card);
+            });
+            row.appendChild(roomTd);
+
             // Player columns
             for (let col = 0; col < MAX_PLAYERS; col++) {
                 const td = document.createElement('td');
@@ -1197,9 +1407,20 @@ function buildTable() {
                 td.addEventListener('click', onCellClick);
                 td.addEventListener('contextmenu', e => {
                     e.preventDefault();
-                    // M10/01: Cell notes are a play-phase tool — no notes during any setup step.
+                    // M11/01: Right-click on a player×card cell drives the manual
+                    // mark cycle (blank → ✗ → ✓ → return-to-auto-state → blank …).
+                    // Game mode only, and never on the Me column.
                     if (gamePhase !== 'play') return;
-                    openCellNoteModal(card, col);
+                    if (col === meCol) return;
+                    cycleManualMark(card, col);
+                });
+                // M11/04: Commit the cycle when the mouse leaves the cell.
+                //   Propagation (and the log entry) happens here, not during
+                //   the right-click cycle itself.
+                td.addEventListener('mouseleave', () => {
+                    if (gamePhase !== 'play') return;
+                    if (col === meCol) return;
+                    commitManualCycle(card, col);
                 });
                 const inner = document.createElement('div'); inner.className = 'cell-inner';
                 td.appendChild(inner);
@@ -1336,6 +1557,11 @@ function renameCard(th, oldName, newName) {
         mutedCards.delete(oldName);
         mutedCards.add(newName);
     }
+    // M11/03: carry room-checked state across the rename
+    if (roomChecked.has(oldName)) {
+        roomChecked.delete(oldName);
+        roomChecked.add(newName);
+    }
     solutionCards.delete(oldName);
 
     // Update td data-card attributes in this row
@@ -1376,15 +1602,8 @@ function renderCell(card, col) {
     const inner = td.querySelector('.cell-inner');
     inner.innerHTML = '';
 
-    // M4: render per-cell mini-note in the corner if present
-    const note = getCellNote(card, col);
-    if (note) {
-        const n = document.createElement('span');
-        n.className = 'cell-note';
-        n.textContent = note;
-        n.title = 'Right-click to edit note';
-        inner.appendChild(n);
-    }
+    // M11/01: Per-cell mini-notes removed — right-click now drives the manual
+    // mark cycle (see onCellRightClickManual). Nothing to render here.
 
     // Render every mark in the cell's history list with its turn tag.
     // For Me's column we still hide '!' (showed) marks — Me's "I showed X" is recorded as ←Player on Me's column.
@@ -1408,8 +1627,9 @@ function renderCell(card, col) {
             default: sym.textContent = '·';
         }
         wrap.appendChild(sym);
-        const tag = document.createElement('sup'); tag.className = 'turn-tag'; tag.textContent = String(m.turn);
-        wrap.appendChild(tag);
+        // M11/02: Turn-tag visibility removed from player×card cells per
+        // unanimous playtest feedback (distracting, hard to read). The mark
+        // still carries m.turn — log entries and data structures untouched.
         inner.appendChild(wrap);
     });
 
@@ -1422,6 +1642,7 @@ function renderAllCells() {
     ALL_CARDS.forEach(card => {
         for (let c = 0; c < MAX_PLAYERS; c++) renderCell(card, c);
         renderSummaryCell(card);
+        renderRoomCell(card);  // M11/03
     });
     applyPlayLocks();
     applyBlankColLock();
@@ -1817,6 +2038,8 @@ function editSetup() {
 function _doEditSetup() {
     // Clear game data, keep Me cards
     gameLog = []; undoStack = []; typingUndoStack = []; solutionCards = new Set();
+    roomChecked = new Set();   // M11/03: room marks are play-time data
+    roomCycleSnapshot = {}; roomUndoLists = {};  // M11/04: clear room cycle state
     turnStep = 0; turnCount = 1;
     setupStep = 1;
 
@@ -2226,6 +2449,8 @@ function applyAutoX(card, col, undoList) {
 // SOLUTION FLAGS
 // ═══════════════════════════════════════════════════════════════════
 function isSolutionCandidate(card) {
+    // M11/03: A room-checked card is on the board — definitely NOT the secret.
+    if (roomChecked.has(card)) return false;
     // A card is a solution candidate when every active player has ✗
     // (nobody confirmed to have it)
     for (let i = 0; i < turnOrder.length; i++) {
@@ -2249,20 +2474,15 @@ function updateSolutionFlags(cards) {
 }
 
 function renderSolutionFlags() {
-    // M2: Solution flashing was retired with the design (per Gemini conversation).
-    // Function kept as a no-op so existing call sites do not break.
-    // Simple coloring for cards still in the solutionCards set, no flash animation.
+    // M11/05: Card-column solution highlight removed per Patrick — "too much
+    //   like thinking." The solutionCards set is still maintained for engine
+    //   use (isSolutionCandidate), but no visual flag lands on the card name.
+    //   We still STRIP any leftover flag styling so older saves render clean.
     document.querySelectorAll('tbody tr th[data-card]').forEach(th => {
-        const card = th.dataset.card;
+        th.style.color = ''; th.style.fontWeight = '';
+        th.classList.remove('sol-flash-green','sol-flash-red');
         const flag = th.querySelector('.sol-flag');
-        if (solutionCards.has(card)) {
-            th.style.color = 'var(--red)'; th.style.fontWeight = '700';
-            if (!flag) { const sp = document.createElement('span'); sp.className = 'sol-flag'; sp.textContent = ' 🔍'; th.appendChild(sp); }
-        } else {
-            th.style.color = ''; th.style.fontWeight = '';
-            th.classList.remove('sol-flash-green','sol-flash-red');
-            if (flag) th.removeChild(flag);
-        }
+        if (flag) th.removeChild(flag);
     });
 }
 
@@ -2700,6 +2920,29 @@ function renderFullLog() {
 
         let html = `<span class="log-turn">${tLabel}</span> <span class="log-who ${pc}">${who}</span>`;
 
+        // M11/01: Manual mark log entry — flat one-liner, no asked/showed structure.
+        if (e.manual) {
+            const sym = (e.manualAction === 'check')  ? '<span class="sym-check">✓</span>'
+                      : (e.manualAction === 'cross')  ? '<span class="sym-cross">✗</span>'
+                      : (e.manualAction === 'blank')  ? '<span class="log-nobody">blank</span>'
+                      :                                 '<span class="log-nobody">auto</span>';
+            html += ` <span class="log-arrow">—</span> <span class="log-asked">${e.manualCard}</span> <span class="log-arrow">→</span> ${sym}`;
+            div.innerHTML = html;
+            list.appendChild(div);
+            return;
+        }
+
+        // M11/03: Room mark log entry — "🏠 [card] → ✓" or "blank" (toggle off).
+        if (e.room) {
+            const sym = (e.roomAction === 'check')
+                ? '<span class="sym-check">✓</span>'
+                : '<span class="log-nobody">blank</span>';
+            html = `<span class="log-turn">${tLabel}</span> <span class="log-who">🏠 Room</span> <span class="log-arrow">—</span> <span class="log-asked">${e.roomCard}</span> <span class="log-arrow">→</span> ${sym}`;
+            div.innerHTML = html;
+            list.appendChild(div);
+            return;
+        }
+
         // Asked line
         if (e.asked && e.asked.length > 0) {
             html += ` <span class="log-arrow">—</span> <span class="log-asked">${e.asked.join(' · ')}</span>`;
@@ -2761,13 +3004,15 @@ function getSnapshot() {
              categories: CATEGORIES.map(c => ({ name:c.name, cards:[...c.cards] })),
              mutedCategoryIdxs: [...mutedCategoryIdxs],
              mutedCards: [...mutedCards],
-             // M10/04: nicknames (was cardCounts) + player-out state + cell notes + summary marks
+             // M10/04: nicknames (was cardCounts) + player-out state + summary marks.
+             // M11/01: cellNotes removed (mini-notes feature retired).
+             // M11/03: roomChecked — 2-player variant face-down-card tracker.
              playerNicknames: [...playerNicknames],
              playerOutKind: { ...playerOutKind },
-             cellNotes: { ...cellNotes },
              summaryMarks: { ...summaryMarks },
+             roomChecked: [...roomChecked],
              setupStep,
-             schemaVersion: 5 };
+             schemaVersion: 6 };
 }
 
 function applySnapshot(d) {
@@ -2787,7 +3032,8 @@ function applySnapshot(d) {
     // Restore muted state (default to none if absent)
     mutedCategoryIdxs = new Set(Array.isArray(d.mutedCategoryIdxs) ? d.mutedCategoryIdxs : []);
     mutedCards        = new Set(Array.isArray(d.mutedCards)        ? d.mutedCards        : []);
-    // M10/04: nicknames (was cardCounts) + player-out state + cell notes + summary marks
+    // M10/04: nicknames (was cardCounts) + player-out state + summary marks
+    // (M11/01: cell notes removed)
     if (Array.isArray(d.playerNicknames) && d.playerNicknames.length === MAX_PLAYERS) {
         playerNicknames = d.playerNicknames.map(v => (typeof v === 'string' ? v.slice(0, 4) : ''));
     } else {
@@ -2808,8 +3054,10 @@ function applySnapshot(d) {
     } else {
         playerOutKind = {};
     }
-    cellNotes    = (d.cellNotes    && typeof d.cellNotes    === 'object') ? { ...d.cellNotes    } : {};
+    // M11/01: cellNotes removed — older saves are silently ignored.
     summaryMarks = (d.summaryMarks && typeof d.summaryMarks === 'object') ? { ...d.summaryMarks } : {};
+    // M11/03: restore room-checked set (older saves get an empty set).
+    roomChecked  = new Set(Array.isArray(d.roomChecked) ? d.roomChecked : []);
     setupStep    = (typeof d.setupStep === 'number') ? Math.max(1, Math.min(5, d.setupStep)) : 1;
     // Reflect nicknames into the inputs
     for (let col = 0; col < MAX_PLAYERS; col++) {
@@ -2922,6 +3170,8 @@ function _doNewGame(opts) {
     initState();
     gameLog=[]; turnOrder=[]; turnStep=0; turnCount=1; meCol=-1; meOriginalName=''; gamePhase='setup';
     undoStack=[]; typingUndoStack=[]; solutionCards=new Set();
+    roomChecked = new Set();  // M11/03
+    roomCycleSnapshot = {}; roomUndoLists = {};  // M11/04
     setupStep = 1;
     document.getElementById('setupBanner').classList.remove('game-on');
     // Phase text now driven by updatePhaseBarText()
@@ -2942,8 +3192,10 @@ function _doNewGame(opts) {
         if(elC){ elC.value = playerNicknames[i-1] || ''; elC.disabled=false; }
     }
     playerOutKind = {};
-    cellNotes = {};
+    // M11/01: cellNotes removed (mini-notes feature retired).
     summaryMarks = {};
+    roomChecked = new Set();   // M11/03: clear room marks on full reset
+    roomCycleSnapshot = {}; roomUndoLists = {};  // M11/04: clear room cycle state
     refreshNicknameDisplays();
     for(let c=0;c<MAX_PLAYERS;c++){ const th=document.getElementById('th'+c); if(th){ th.classList.remove('me-col'); th.classList.remove('in-play'); th.classList.remove('player-out'); th.classList.remove('player-wrongacc'); } }
     clearPending();
@@ -3179,7 +3431,7 @@ window.addEventListener('load', () => {
     } else if (lastUsedDeckIdx >= 0) {
         // No active game — restore last-used Game Deck (names + dividers only).
         // Per the deck-is-just-the-Card-column rule, we go through the standard load path
-        // so cellState / cellNotes / summaryMarks / mute state are preserved exactly.
+        // so cellState / summaryMarks / mute state are preserved exactly.
         const decks = getSavedDecks();
         const deck = decks[lastUsedDeckIdx];
         if (deck) {
@@ -3298,8 +3550,11 @@ function setGuideContent() {
             <li><strong>Card name — Step 3</strong> — mute or activate one card, or mass-mute that card and every card below it in the same category.</li>
             <li><strong>Player header — Step 5</strong> — pick that suspect as your "Me" column.</li>
             <li><strong>Player header — Play</strong> — mark that player out of the game (quit or wrong accusation).</li>
-            <li><strong>Any player cell — Play</strong> — add a six-character note that lives in the corner of the cell.</li>
+            <li><strong>Any player cell — Play</strong> — cycle a manual mark on that cell: <strong>blank → ✗ → ✓ → return-to-auto → blank …</strong> Manual marks are treated as facts by the deduction engine (a manual ✓ propagates ✗ across the rest of the row) and are recorded in the Log. Not available on your own Me column.</li>
         </ul>
+
+        <h3>The Room column (🏠)</h3>
+        <p>The narrow 🏠 column to the right of the ∑ column is for the <strong>2-player variant</strong> where undealt cards sit face-down in rooms on the board. When you visit a room and peek at a card, click that card's 🏠 cell to mark it as seen. The cell shows a ✓ and the engine immediately ✗s the card across every active player column (no player holds a board card) and removes it from the list of possible secret answers (you've seen it — it can't be the answer). Click again to clear. The column is always visible, but only does anything in Play mode. It's ignored in non-variant games where no cards go to the board.</p>
 
         <h3>Game Play</h3>
         <p>The Game page opens where the app has automatically filled in the boxes in the grid of your column, the Me column, with √s for the cards you hold and ✗s for the cards you don't. Likewise, the app has automatically filled the boxes in the other player columns with ✗s for the cards you hold.</p>
@@ -3308,7 +3563,7 @@ function setGuideContent() {
         <h3>Turn play</h3>
         <p>Each turn follows the same shape. The page header on the left shows where the turn is at — <em>thinking</em>, <em>guessing</em>, <em>waiting</em>, <em>showed</em> — so you can glance up and orient yourself.</p>
         <ul>
-            <li><strong>Click the asked cards.</strong> When a player asks about three cards, click those three cards in the asking player's column. A ? mark with a turn<sup>#</sup> tag drops in.</li>
+            <li><strong>Click the asked cards.</strong> When a player asks about three cards, click those three cards in the asking player's column. A ? mark drops in.</li>
             <li><strong>Click the shower's column header.</strong> When someone shows, click their player-header. The app records the shown cards with a ! mark on each of the three cards in their column and drops a ✗ on the card for every player that passed in between — those players couldn't show, so they don't hold any of the three cards.</li>
             <li><strong>When it's your turn to ask or to be shown,</strong> a small popup appears so you can record which card was involved. Marks like ✓ (you saw it) and ←Me / ←Player (who showed to whom) capture the private exchange.</li>
             <li><strong>Press Next.</strong> At the end of the current player's turn tap Next. The turn advances and a new entry lands in the Game Log on the right.</li>
@@ -3316,7 +3571,7 @@ function setGuideContent() {
         </ul>
 
         <h3>Reading the marks</h3>
-        <p>Every mark carries a small turn tag <sup>#</sup> — the superscript number tells you on what turn number it was placed. (e.g. ✗<sup>1</sup>)</p>
+        <p>Every mark in the Log carries the turn it was placed on. (Player cells used to show a small superscript turn tag too, but it was distracting and the Log already has it, so it was removed.)</p>
         <ul>
             <li><strong>✓</strong> — this player has this card. Confirmed.</li>
             <li><strong>✗</strong> — this player does <em>not</em> have this card. Confirmed.</li>
@@ -3651,15 +3906,8 @@ function wireTypingInput(input, entryBuilder) {
     });
 }
 
-// M4: per-cell mini-notes (6 chars max), keyed by "card|col"
-let cellNotes = {};
-function cellNoteKey(card, col) { return card + '|' + col; }
-function getCellNote(card, col) { return cellNotes[cellNoteKey(card, col)] || ''; }
-function setCellNote(card, col, text) {
-    const k = cellNoteKey(card, col);
-    text = (text || '').slice(0, 6);
-    if (text) cellNotes[k] = text; else delete cellNotes[k];
-}
+// M11/01: M4 per-cell mini-notes removed — right-click on a player×card cell
+// now drives the manual mark cycle instead. See cycleManualMark().
 
 // M4: Summary column manual marks, keyed by card name. Value: '' | 'x' | 'star'
 let summaryMarks = {};
@@ -3668,6 +3916,104 @@ function cycleSummaryMark(card) {
     const cur = summaryMarks[card] || '';
     summaryMarks[card] = (cur === '' ? 'x' : (cur === 'x' ? 'star' : ''));
     if (!summaryMarks[card]) delete summaryMarks[card];
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// M11/03: ROOM COLUMN — 2-player variant face-down-card tracker.
+//   Stores the set of card names whose Room cell is checked. When a card
+//   is room-checked: ✗ propagates across every active player column (no
+//   one holds it), and the card is excluded from being a solution candidate
+//   (you've seen it on the board, it can't be the secret).
+// ═══════════════════════════════════════════════════════════════════
+let roomChecked = new Set();
+// M11/04: per-card cycle state for Room cells. roomCycleSnapshot[card] is
+// the room-checked state at the start of the current click cycle (the
+// engine baseline). roomUndoLists[card] is the row-of-✗s we propagated on
+// the most recent committed ✓, so a later cycle can roll it back precisely.
+let roomCycleSnapshot = {};
+let roomUndoLists     = {};
+function isRoomChecked(card) { return roomChecked.has(card); }
+
+// Click handler — display-only. No row propagation, no log entry; the
+// commit on mouseleave handles both.
+function toggleRoomDisplay(card) {
+    // First click of a new cycle: snapshot the engine baseline. If we have
+    // a prior committed propagation, undo it so the row starts clean.
+    if (!(card in roomCycleSnapshot)) {
+        if (roomUndoLists[card] && roomUndoLists[card].length) {
+            roomUndoLists[card].forEach(undoEntry);
+            // After undoing, the engine baseline is "unchecked" (no row ✗s).
+            roomChecked.delete(card);
+            delete roomUndoLists[card];
+        }
+        roomCycleSnapshot[card] = roomChecked.has(card);
+    }
+    // Toggle display state
+    if (roomChecked.has(card)) roomChecked.delete(card);
+    else                       roomChecked.add(card);
+    renderRoomCell(card);
+    renderSummaryCell(card);
+    autoSave();
+}
+
+// Commit on mouseleave. Same logic as the manual-mark commit:
+// • final state == snapshot   → no-op, drop any log entry
+// • final state == ✓ (and was blank) → propagate ✗s, store new undoList
+// • final state == blank (and was ✓) → no propagation (undo already done
+//   on first click of this cycle), just drop log entry
+function commitRoomCycle(card) {
+    if (!(card in roomCycleSnapshot)) return; // no active cycle
+    const snap = roomCycleSnapshot[card];
+    const cur  = roomChecked.has(card);
+    delete roomCycleSnapshot[card];
+
+    if (cur === snap) {
+        // No net change (toggled twice or revisited mid-cycle and bailed)
+        logRoomMark(card, 'blank');
+        renderFullLog();
+        autoSave();
+        return;
+    }
+    if (cur) {
+        // Blank → ✓: propagate ✗s now
+        roomUndoLists[card] = propagateRowCross(card, -1);
+        logRoomMark(card, 'check');
+    } else {
+        // ✓ → blank: the undoEntries already ran on first click, so the row
+        //  is already clean. Just drop the log entry.
+        logRoomMark(card, 'blank');
+    }
+    renderSummaryCell(card);
+    renderFullLog();
+    autoSave();
+}
+
+// Render the Room (🏠) cell for a single card.
+function renderRoomCell(card) {
+    const td = document.querySelector(`td.room-col[data-card="${CSS.escape(card)}"]`);
+    if (!td) return;
+    const inner = td.querySelector('.cell-inner');
+    if (!inner) return;
+    inner.innerHTML = '';
+    if (roomChecked.has(card)) {
+        const sp = document.createElement('span');
+        sp.className = 'room-check'; sp.textContent = '✓';
+        sp.title = 'Seen face-down in a room (board card)';
+        inner.appendChild(sp);
+    }
+}
+
+// Push a one-line gameLog entry for a Room mark toggle. Same rule as
+// manual marks: only the active state stays in the Log. Unchecking a
+// room mark removes its entry — the card is no longer "on the board."
+function logRoomMark(card, action) {
+    gameLog = gameLog.filter(e => !(e.room && e.roomCard === card));
+    if (action === 'blank') return;
+    gameLog.push({
+        turn: turnCount,
+        playerIdx: -1, player: 'Board', isMe: false,
+        room: true, roomAction: action, roomCard: card,
+    });
 }
 
 // M5+: Popup for Me-as-asker — pick which of the 3 asked cards the shower showed me.
@@ -3782,23 +4128,8 @@ function openMeShowerPicker(askerCol, askedCards) {
     showModal({ title:'You Showed', body:wrapper, buttons:[{ label:'Cancel', action:hideModal }] });
 }
 
-function openCellNoteModal(card, col) {
-    const playerName = getColName(col);
-    const current = getCellNote(card, col);
-    modalPrompt({
-        title: `Cell note: ${card} / ${playerName}`,
-        message: 'Up to 6 characters. Leave blank to remove the note.',
-        defaultValue: current,
-        maxLength: 6,
-        okLabel: 'Save',
-        onSubmit: (val) => {
-            if (val === null) return;
-            setCellNote(card, col, val);
-            renderCell(card, col);
-            autoSave();
-        }
-    });
-}
+// M11/01: openCellNoteModal removed — mini-notes feature retired in favor of
+// the right-click manual mark cycle. See cycleManualMark().
 
 function applyPlayerOutBadges() {
     // M10/05: Two kinds of Out — 'quit' shows 👋, 'wrongacc' shows 😢. Both styles
@@ -4052,24 +4383,18 @@ function _doLoadGameDeck(idx, deck, opts) {
     // Deck load swaps ONLY the Card-column data — category names and card names.
     // Everything else is preserved in place by POSITION:
     //   • cellState marks (including Me's ✓), per-row, per-column
-    //   • cellNotes (per-cell mini-notes)
     //   • summaryMarks (∑ marks)
     //   • mutedCategoryIdxs, mutedCards, mutedPlayers — UNTOUCHED
     //   • playerNames, playerNicknames, gameLog, turnCount, gamePhase — UNTOUCHED
+    // M11/01: cellNotes capture removed (mini-notes feature retired).
     // ─────────────────────────────────────────────────────────────────────
 
     // 1) Capture every per-card state by ORDINAL POSITION (0..29) before we rename cards.
     const oldOrder = [...ALL_CARDS];
     const marksByPos = oldOrder.map(card => cellState[card] || null);
     const sumByPos   = oldOrder.map(card => summaryMarks[card] || '');
-    const notesByPos = oldOrder.map(card => {
-        const row = {};
-        for (let col = 0; col < MAX_PLAYERS; col++) {
-            const k = cellNoteKey(card, col);
-            if (cellNotes[k]) row[col] = cellNotes[k];
-        }
-        return row;
-    });
+    // M11/03: capture room-checked state by ordinal position too.
+    const roomByPos  = oldOrder.map(card => roomChecked.has(card));
 
     // 2) Apply the new deck's names + divider positions.
     //    Tolerantly read old fat-format decks: only `categories[].name` and `categories[].cards`
@@ -4082,10 +4407,10 @@ function _doLoadGameDeck(idx, deck, opts) {
     normalizeCategoryShape();
     rebuildAllCards();
 
-    // 3) Rebuild cellState / cellNotes / summaryMarks keyed to the NEW card names,
+    // 3) Rebuild cellState / summaryMarks keyed to the NEW card names,
     //    using the captured-by-position data so every mark stays where it was on the grid.
+    // M11/01: cellNotes rebuild removed (mini-notes feature retired).
     const newCellState = {};
-    const newCellNotes = {};
     const newSummary   = {};
     ALL_CARDS.forEach((card, i) => {
         // cellState — reuse the captured row if any, else fresh blanks.
@@ -4097,18 +4422,17 @@ function _doLoadGameDeck(idx, deck, opts) {
                 newCellState[card][c] = { check:false, cross:false, asked:false, showed:false, shownToMe:false, meShowedTo:'', iShowedMe:false, marks:[] };
             }
         }
-        // cellNotes — copy the captured row back under the new card key.
-        if (notesByPos[i]) {
-            for (const col in notesByPos[i]) {
-                newCellNotes[cellNoteKey(card, parseInt(col))] = notesByPos[i][col];
-            }
-        }
         // summaryMarks — copy the captured mark back under the new card key.
         if (sumByPos[i]) newSummary[card] = sumByPos[i];
     });
     cellState    = newCellState;
-    cellNotes    = newCellNotes;
     summaryMarks = newSummary;
+    // M11/03: re-key room-checked set to the NEW card names by position.
+    const newRoomChecked = new Set();
+    ALL_CARDS.forEach((card, i) => {
+        if (roomByPos[i]) newRoomChecked.add(card);
+    });
+    roomChecked = newRoomChecked;
 
     // 4) M10/03: Restore player names ONLY when caller asks for it.
     //    loadGameDeck() shows a "Load saved names?" checkbox in the popup and passes
