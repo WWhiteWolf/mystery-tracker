@@ -703,37 +703,14 @@
               The opacity is low enough that the cell glyph still reads cleanly, and
               the existing outlines (active-turn, pending-ask, asked-has-card) sit
               on top via outline-offset and remain visible. ── */
-        td.cell-check { background-color: rgba( 38, 145,  72, 0.62) !important; }
-        td.cell-cross { background-color: rgba(192,  57,  43, 0.52) !important; }
+        td.cell-check { background-color: rgba(  0, 155,  50, 0.58) !important; }
+        td.cell-cross { background-color: rgba(215,  30,  30, 0.48) !important; }
 
-        /* ── M11/09: SPACIOUS TABLE MODE (~30% bigger) — applied to <table> when
-              hide-mode is active. Bumps row height and the text inside cells, card
-              names, and player headers so the working grid is easier to read once
-              empty columns and muted rows have dropped away. ── */
-        table.table-spacious                       { font-size: 1.10rem; }
-        /* M11/09 calibration: per Patrick after first test — cells were pushing
-           the bottom of the grid past the viewport. Padding-top/bottom bump
-           dropped; the text-size bumps stay so the glyphs are still bigger. */
-        table.table-spacious .cell-inner           { font-size: 1.00rem; gap: 2px 4px; }
-        table.table-spacious .sym-check            { font-size: 1.10rem; }
-        table.table-spacious .sym-cross            { font-size: 1.05rem; }
-        table.table-spacious .sym-asked,
-        table.table-spacious .sym-showed,
-        table.table-spacious .sym-shownme          { font-size: 0.90rem; padding: 2px 4px; }
-        table.table-spacious .sym-meshowed         { font-size: 0.85rem; }
-        table.table-spacious thead th              { font-size: 1.00rem; }
-        table.table-spacious .ph                   { font-size: 1.00rem; }
-        table.table-spacious .cc,
-        table.table-spacious .cc-display           { font-size: 0.92rem; }
-        table.table-spacious tbody th[data-card]   { font-size: 1.00rem; }
-        table.table-spacious .room-check           { font-size: 1.25rem; }
-        table.table-spacious .sum-x                { font-size: 1.10rem; }
-        table.table-spacious .sum-star             { width: 18px; height: 18px; }
-        /* Σ and 🏠 columns keep their narrow width so the player cells get the
-           extra horizontal room. */
-        table.table-spacious thead th.sum-col,
-        table.table-spacious td.sum-col            { font-size: 1.00rem; }
-        table.table-spacious thead th.room-col     { font-size: 1.05rem; }
+        /* ── M11/09 — REVERTED — spacious-mode bumping kept fighting the table
+              layout (row-growth on commit, etc). Per Patrick: drop the whole
+              spacious bump and stay at base text size. Hide-mode (M11/08)
+              still drops empty columns and muted rows, giving screen real
+              estate back without touching glyph or row sizes. ── */
 
 
         /* ── M2: MUTED ROWS (active/inactive cards & categories) ── */
@@ -1652,10 +1629,16 @@ function renderCell(card, col) {
     const isMeCol = (col === meCol);
     const marks = s.marks || [];
     const hasShownToMe = marks.some(m => m.type === 'shownToMe');
+    // M11/11: once the cell carries a definitive ✓ or ✗, drop the '?' (asked)
+    //   and '!' (showed) glyphs from the cell — the definitive answer makes
+    //   them visual noise. The marks themselves stay in cs.marks so the Log
+    //   keeps its full history.
+    const hasDefinitive = s.check || s.cross;
     marks.forEach(m => {
         if (isMeCol && m.type === 'showed') return;
         // When ✓* is present on this cell, suppress the plain ✓ (✓* implies it)
         if (m.type === 'check' && hasShownToMe) return;
+        if (hasDefinitive && (m.type === 'asked' || m.type === 'showed')) return;
         const wrap = document.createElement('span'); wrap.className = 'mk';
         const sym  = document.createElement('span');
         switch (m.type) {
@@ -1902,9 +1885,8 @@ function applyBlankColLock() {
         row.classList.toggle('row-hidden', hideMode && muted);
     });
 
-    // M11/09: spacious table mode tracks the same hide-mode flag.
-    const table = document.getElementById('clueTable');
-    if (table) table.classList.toggle('table-spacious', hideMode);
+    // M11/09 REVERTED — spacious mode dropped. Hide-mode still controls the
+    //   column / row hiding above; just no font/height bump anymore.
 }
 
 function applyActiveTurnStyling() {
