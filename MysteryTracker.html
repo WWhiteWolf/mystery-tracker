@@ -25,6 +25,7 @@
            via `body.light`. Both modes use the same variable names so every
            component using var(--bg), var(--surface), etc. flips automatically. */
         :root {
+            --ui-zoom: 0.9;  /* single source for page zoom; body height divides by this so it still fills the screen */
             /* DARK MODE — mobile palette */
             --bg:         #1a1410;
             --bg2:        #242018;
@@ -140,12 +141,12 @@
             --cat-rooms-bg:        #e8f5ec;
         }
         * { box-sizing:border-box; margin:0; padding:0; }
-        html { zoom: 0.9; }
+        html { zoom: var(--ui-zoom); }
         body {
             font-family:'Lora',Georgia,serif;
             background:var(--bg);
             background-image: var(--body-bg-pattern);
-            color:var(--text); height:100vh; padding:8px;
+            color:var(--text); height:calc(100vh / var(--ui-zoom)); padding:8px;
             user-select:none; -webkit-user-select:none;
             display:flex; flex-direction:column; overflow:hidden;
         }
@@ -177,17 +178,17 @@
         .outer-layout {
             display:grid;
             grid-template-columns:auto 460px;
-            grid-template-rows:1fr auto;
+            grid-template-rows:minmax(0, 1fr);
             gap:8px;
-            height:calc(100vh - 66px);
+            flex:1; min-height:0;          /* fill remaining space below the bars; no hardcoded height — stable across zoom */
         }
-        .table-col  { grid-column:1; grid-row:1 / 3; overflow-y:auto; display:flex; flex-direction:column; }
-        .table-wrap { flex:1; background:var(--surface); border:1.5px solid var(--gold); border-radius:var(--radius); overflow-y:auto; box-shadow:var(--shadow); display:flex; flex-direction:column; }
-        table { width:100%; border-collapse:collapse; font-size:0.85rem; flex:1; }
+        .table-col  { grid-column:1; grid-row:1; overflow-y:auto; display:flex; flex-direction:column; }
+        .table-wrap { flex:1; background:var(--surface); border:1.5px solid var(--gold); border-radius:var(--radius); overflow-y:auto; box-shadow:var(--shadow); }
+        table { width:100%; border-collapse:collapse; font-size:0.85rem; }
         /* Info Bar retired — Game Log now spans the full right side. */
         /* M11/06: Notes row removed — right-col now spans both rows of .outer-layout
            so the Log (and the Guide / Rules overlays) reclaim the freed vertical space. */
-        .right-col  { grid-column:2; grid-row:1 / 3; display:flex; flex-direction:column; gap:6px; min-height:0; }
+        .right-col  { grid-column:2; grid-row:1; display:flex; flex-direction:column; gap:6px; min-height:0; }
 
         /* ── LOG PANEL grows to fill ── */
         .log-panel { flex:1; min-height:0; background:var(--surface); border:1.5px solid var(--gold); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column; }
@@ -251,7 +252,7 @@
         .card-name-input:focus { border-bottom-color:var(--gold); background:var(--active-turn-bg); }
         /* M10/01: locked inputs (wrong setup step) — dim and not-allowed */
         .card-name-input:disabled, .cat-name-input:disabled { opacity:0.55; cursor:not-allowed; border-bottom-style:dotted; }
-        tbody tr td { text-align:center; padding:1px 2px; border:1px solid var(--border-lt); width:60px; min-width:60px; max-width:60px; height:auto; min-height:22px; cursor:pointer; font-size:0.88rem; transition:background 0.1s; user-select:none; }
+        tbody tr td { text-align:center; padding:1px 2px; border:1px solid var(--border-lt); width:60px; min-width:60px; max-width:60px; height:22px; cursor:pointer; font-size:0.88rem; transition:background 0.1s; user-select:none; }
         tbody tr td:hover { background:var(--row-hover-bg) !important; }
         tbody tr:nth-child(even) td { background:var(--row-alt-bg); }
 
@@ -731,7 +732,7 @@
         tr.row-muted td.sum-col, tr.row-muted td.room-col, tr.row-muted td[data-col] { background:var(--col-blank-locked-bg) !important; }
         tr.row-muted:hover td, tr.row-muted:hover th { opacity:0.5; }
         tr.row-muted .card-name-input, tr.row-muted .cat-name-input { cursor:text; }
-        /* Subtle hint that the row is double-clickable to toggle */
+        /* Smooth the fade when a row's muted (active/inactive) state changes */
         tr[data-card], tr.cat-row { transition:opacity 0.15s, filter 0.15s; }
 
         /* ── M2: EDITABLE CATEGORY BANNER NAME (setup only) ── */
@@ -783,6 +784,7 @@
     <div class="header-left">
         <button class="btn btn-guide"    id="btnGuide"    onclick="toggleGuide()">📖 Guide</button>
         <button class="btn btn-rules"    id="btnRules"    onclick="toggleRules()">📋 Rules</button>
+        <button class="btn btn-rules"    id="btnHelpers"  onclick="toggleHelpers()">?</button>
         <button class="btn btn-darkmode" id="btnDarkMode" onclick="toggleDarkMode()" title="Toggle dark mode">☀</button>
         <span class="header-directive" id="headerDirective"></span>
     </div>
@@ -842,7 +844,7 @@
                 <thead>
                     <tr id="headerRow">
                         <th>Card</th>
-                        <th class="sum-col" title="Summary (auto-fill arrives in M5)">∑</th>
+                        <th class="sum-col" title="Summary — click a card's ∑ cell to cycle a marker: ✕ (held by a known player) → ★ (could be the secret answer) → blank. Play mode only.">∑</th>
                         <th class="room-col" title="Room — for the 2-player variant where cards lie face-down on the board. Click to mark a card you've seen in a room (it can't be the secret, and no player holds it).">🏠</th>
                         <th id="th0"><div class="header-inner"><input class="ph" id="p1h" type="text" placeholder="Player 1" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p1c" type="text" maxlength="4" placeholder="?" spellcheck="false" oninput="onNicknameChange(0)"><span class="cc-display" id="p1cd"></span><span>)</span><span class="player-out-badge" title="Player is out"></span></div></th>
                         <th id="th1"><div class="header-inner"><input class="ph" id="p2h" type="text" placeholder="Player 2" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p2c" type="text" maxlength="4" placeholder="?" spellcheck="false" oninput="onNicknameChange(1)"><span class="cc-display" id="p2cd"></span><span>)</span><span class="player-out-badge" title="Player is out"></span></div></th>
@@ -888,6 +890,17 @@
             </div>
             <textarea class="rules-textarea" id="rulesArea"
                 placeholder="Paste this game's rules here. Autosaved per deck slot."></textarea>
+        </div>
+
+        <!-- F1: Optional-rules panel — placeholder name "?", Patrick to rename later. -->
+        <div class="overlay-panel" id="helpersPanel">
+            <div class="overlay-head">
+                <span>? Optional Rules</span>
+                <button class="overlay-close" onclick="toggleHelpers()">Close</button>
+            </div>
+            <div class="overlay-body" id="helpersBody">
+                <!-- Checklist drawn here by the optional-rules module. -->
+            </div>
         </div>
     </div>
 
@@ -982,8 +995,7 @@
 // ─────────────────────────────────────────────────────────────────
 //
 // KEY STATE VARIABLES (see ~374 for full list):
-//   cellState[card][col]  — {check, cross, asked, showed, shownToMe,
-//                             meShowedTo, iShowedMe}
+//   cellState[card][col]  — {check, cross, asked, showed, shownToMe, iShowedMe}
 //   turnOrder[]           — Active column indices in play order
 //   turnStep              — Index into turnOrder (current player)
 //   meCol                 — Column index of "Me" player
@@ -1034,6 +1046,11 @@ function getCatIdxOf(cardName) {
 function totalCardCount()  { return CATEGORIES.reduce((s,c) => s + c.cards.length, 0); }
 function isCategoryActive(idx) { return !mutedCategoryIdxs.has(idx); }
 function isCardActive(name)    { return !mutedCards.has(name); }
+// A card's row is live only if neither the card nor its category is muted.
+function isRowActive(card) {
+    const ci = CATEGORIES.findIndex(cat => cat.cards.includes(card));
+    return (ci < 0 || isCategoryActive(ci)) && isCardActive(card);
+}
 function activeCategoryCount() { return CATEGORIES.filter((_,i) => isCategoryActive(i)).length; }
 
 // Force CATEGORIES into the fixed shape: exactly 4 categories, exactly 30 cards total.
@@ -1079,7 +1096,7 @@ rebuildAllCards();
 // STATE
 // ═══════════════════════════════════════════════════════════════════
 // cellState[card][col]: col 0-5 maps to table columns 0-5
-// { check, cross, asked, showed, shownToMe, meShowedTo }
+// { check, cross, asked, showed, shownToMe, iShowedMe }
 let cellState    = {};
 let gameLog      = [];
 let liveLogEntry = null; // current turn's log entry, shown live before Next Player
@@ -1100,6 +1117,12 @@ let committedAskedUndo = []; // [{card,col,old}] for undo
 let committedShowedUndo= []; // [{card,col,old}] for undo — S marks + auto-✗ from header click
 let committedAltUndo   = []; // [{card,col,old}] for undo — Alt+click shown/showed marks
 let pendingShowed      = []; // [{card,col,committed}]
+let showerUndoArmed    = -1;  // col armed for shower-undo confirm; 2nd tap arms, 3rd tap reverts
+let showerUndoTimer    = null; // 5s auto-disarm timer for the shower-undo confirm
+function clearShowerUndoArm() {
+    showerUndoArmed = -1;
+    if (showerUndoTimer) { clearTimeout(showerUndoTimer); showerUndoTimer = null; }
+}
 let pendingShownMe     = []; // [{card,col,player}] Alt+click other col
 let pendingIShowed     = []; // [{card,col,toPlayer}] Alt+click me col
 let shiftActive        = false;
@@ -1111,7 +1134,7 @@ function initState() {
     ALL_CARDS.forEach(card => {
         cellState[card] = {};
         for (let i = 0; i < MAX_PLAYERS; i++)
-            cellState[card][i] = { check:false, cross:false, asked:false, showed:false, shownToMe:false, meShowedTo:'', iShowedMe:false, marks:[] };
+            cellState[card][i] = { check:false, cross:false, asked:false, showed:false, shownToMe:false, iShowedMe:false, marks:[] };
     });
 }
 
@@ -1127,31 +1150,31 @@ function currentTurnTag() {
 // (booleans are kept as a quick "does this cell have any mark of type X" cache).
 //
 // Patrick's rule:
-//   • ✓ (check) and ✗ (cross) are SINGLE — the first one wins, no stacking.
-//     Once a cell has a ✓ or ✗, repeat marks of the same type are skipped so
-//     the original turn tag stays visible.
-//   • ? (asked), ! (showed), ←Me (iShowedMe), ←Player (meShowedTo) STACK —
-//     every occurrence is recorded with its own turn tag.
+//   • ✓ (check), ✗ (cross), and ! (showed) are SINGLE — first one wins,
+//     no stacking; later attempts of the same type are skipped.
+//   • ? (asked), ←Me (iShowedMe), ✓* (shownToMe) STACK —
+//     every occurrence is recorded. (Internally each mark stores the turn it
+//     was placed on, used by Undo; not shown in the UI.)
 function markCell(card, col, type, extra = {}) {
     const cs = cellState[card] && cellState[card][col];
     if (!cs) return;
     if (!Array.isArray(cs.marks)) cs.marks = [];
-    if ((type === 'check' || type === 'cross') && cs.marks.some(m => m.type === type)) return;
+    // First-mark-wins for the SINGLE types: ✓, ✗, !
+    if ((type === 'check' || type === 'cross' || type === 'showed') && cs.marks.some(m => m.type === type)) return;
     // M11/01: While a cell is under a manual override (cycle in progress),
     // never let the engine add a contradicting check/cross. Manual wins.
     if (cs.manualStage && (type === 'check' || type === 'cross') &&
         cs.marks.some(m => (m.type === 'check' || m.type === 'cross') && m.manual)) return;
-    // Mobile parity: once a ✓ or ✗ is on the cell (any turn tag), no further "!" (showed)
-    // marks land — the confirmed yes/no already tells the story; "!" would be noise.
-    // "?" still stacks normally — recording that the cell was asked again is useful history.
+    // Mobile parity: once a ✓ or ✗ is on the cell, no further "!" (showed) marks
+    // land — the confirmed yes/no already tells the story; "!" would be noise.
+    // "?" still stacks — recording that the cell was asked again is useful history.
     if (type === 'showed' && cs.marks.some(m => m.type === 'check' || m.type === 'cross')) return;
     // Per-turn dedupe for the stacking types — same type can't land twice on the same cell
-    // on the same turn (asked/showed/iShowedMe/meShowedTo all gated this way; mirrors mobile).
+    // on the same turn (asked/shownToMe/iShowedMe all gated this way; mirrors mobile).
     if (type !== 'check' && type !== 'cross' &&
         cs.marks.some(m => m.type === type && m.turn === currentTurnTag())) return;
     cs.marks.push({ type, turn: currentTurnTag(), ...extra });
-    if (type === 'meShowedTo') cs.meShowedTo = extra.to || cs.meShowedTo || '';
-    else cs[type] = true;
+    cs[type] = true;
 }
 
 // Recompute boolean flags from a cell's marks list — used after undo trims marks.
@@ -1165,8 +1188,6 @@ function recomputeCellBooleans(card, col) {
     cs.showed    = marks.some(m => m.type === 'showed');
     cs.shownToMe = marks.some(m => m.type === 'shownToMe');
     cs.iShowedMe = marks.some(m => m.type === 'iShowedMe');
-    const mst = marks.filter(m => m.type === 'meShowedTo');
-    cs.meShowedTo = mst.length ? mst[mst.length - 1].to : '';
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1192,7 +1213,7 @@ function cycleManualMark(card, col) {
     if (gamePhase !== 'play') return;
     if (col === meCol) return;                   // Me column is off-limits
     if (!turnOrder.includes(col)) return;        // inactive (Out) column
-    if (mutedCards.has(card)) return;            // muted card row
+    if (!isRowActive(card)) return;              // #10: muted row (card or category)
 
     // First right-click of a new cycle (no active stage): reset the row by
     // undoing any prior committed propagation, and snapshot/restore the
@@ -1234,7 +1255,6 @@ function cycleManualMark(card, col) {
     }
     cs.manualStage = nextStage;
     renderCell(card, col);
-    renderSummaryCell(card);
     autoSave();
 }
 
@@ -1261,7 +1281,6 @@ function commitManualCycle(card, col) {
         logManualMark(card, col, 'revert');
         cs.manualStage = undefined;
         cs.manualSnapshot = null;
-        renderSummaryCell(card);
         renderFullLog();
         autoSave();
         return;
@@ -1283,7 +1302,6 @@ function commitManualCycle(card, col) {
     logManualMark(card, col, action);
 
     cs.manualStage = undefined;  // cycle complete; snapshot+undoList persist
-    renderSummaryCell(card);
     renderFullLog();
     autoSave();
 }
@@ -1293,7 +1311,7 @@ function snapshotCell(cs) {
     return {
         check:      cs.check,      cross:     cs.cross,
         asked:      cs.asked,      showed:    cs.showed,
-        shownToMe:  cs.shownToMe,  meShowedTo: cs.meShowedTo,
+        shownToMe:  cs.shownToMe,
         iShowedMe:  cs.iShowedMe,
         marks:      (cs.marks || []).map(m => ({ ...m })),
     };
@@ -1304,7 +1322,6 @@ function applyCellSnapshot(cs, snap) {
     cs.asked      = snap.asked;
     cs.showed     = snap.showed;
     cs.shownToMe  = snap.shownToMe;
-    cs.meShowedTo = snap.meShowedTo;
     cs.iShowedMe  = snap.iShowedMe;
     cs.marks      = snap.marks.map(m => ({ ...m }));
 }
@@ -1334,12 +1351,13 @@ function propagateRowCross(card, sourceCol) {
     return undoList;
 }
 
-// M11/01: Keep only the active manual mark per cell in the Log. Each call
-// strips any prior manual entry for this {card, col}, then (unless the
-// action is 'revert') pushes the new one. A revert leaves no entry — the
-// cell has no active manual override anymore.
+// M11/01 (revised M12): The Log is a true log. A manual commit replaces only
+// this cell's manual entry from the CURRENT turn (re-commits within a turn
+// collapse to one entry); manual entries from earlier turns are history and
+// stay put — only a full Undo removes them. A revert removes the current
+// turn's entry (if any) and pushes nothing.
 function logManualMark(card, col, action) {
-    gameLog = gameLog.filter(e => !(e.manual && e.manualCard === card && e.playerIdx === col));
+    gameLog = gameLog.filter(e => !(e.manual && e.manualCard === card && e.playerIdx === col && e.turn === turnCount));
     if (action === 'revert') return;
     gameLog.push({
         turn: turnCount,
@@ -1389,7 +1407,7 @@ function buildTable() {
             row.dataset.card = card;
             row.dataset.catIdx = catIdx;
             row.dataset.cardIdxInCat = cardIdxInCat;
-            if (!cardActive) row.classList.add('row-muted');
+            if (!cardActive || !catActive) row.classList.add('row-muted');
 
             // Card name TH
             const th = document.createElement('th');
@@ -1410,6 +1428,7 @@ function buildTable() {
                 // M10/Cleanup: Σ column is play-only. During Setup the marks
                 // wouldn't mean anything yet, so clicks do nothing.
                 if (gamePhase !== 'play') return;
+                if (!isRowActive(card)) return;   // #10: muted rows take no ∑ marks
                 cycleSummaryMark(card);
                 renderSummaryCell(card);
                 autoSave();
@@ -1428,7 +1447,7 @@ function buildTable() {
             roomTd.appendChild(roomInner);
             roomTd.addEventListener('click', () => {
                 if (gamePhase !== 'play') return;
-                if (mutedCards.has(card)) return;
+                if (!isRowActive(card)) return;   // #10: covers category mutes too
                 toggleRoomDisplay(card);
             });
             // M11/04: Commit the room cycle on mouseleave — propagation and
@@ -1663,8 +1682,6 @@ function renderCell(card, col) {
         // When ✓* is present on this cell, suppress the plain ✓ (✓* implies it)
         if (m.type === 'check' && hasShownToMe) return;
         if (hasDefinitive && m.type === 'showed') return;
-        // M11/23: don't render the meShowedTo mark anywhere — the Log + ✓* cover it.
-        if (m.type === 'meShowedTo') return;
         const wrap = document.createElement('span'); wrap.className = 'mk';
         const sym  = document.createElement('span');
         switch (m.type) {
@@ -1674,7 +1691,6 @@ function renderCell(card, col) {
             case 'showed':     sym.className = 'sym-showed';   sym.textContent = '!'; break;
             case 'shownToMe':  sym.className = 'sym-shownme';  sym.textContent = '✓*'; sym.title = 'Shown to Me'; break;
             case 'iShowedMe':  sym.className = 'sym-meshowed'; sym.textContent = '←Me'; sym.title = 'I showed this card to ' + getColName(col); break;
-            case 'meShowedTo': sym.className = 'sym-meshowed'; sym.textContent = '←' + (m.to || '?'); sym.title = (m.to || 'Someone') + ' showed this to Me'; break;
             default: sym.textContent = '·';
         }
         wrap.appendChild(sym);
@@ -1718,13 +1734,13 @@ function renderSummaryCell(card) {
 }
 
 // ── When any cell gets ✓, ✗ all other active player columns in that row ──
-function autoXRestOfRow(card, checkedCol, undoList) {
+function autoXRestOfRow(card, checkedCol, undoList, extra = {}) {
     turnOrder.forEach(c => {
         if (c === checkedCol) return;
         if (isQuit(c)) return;   // M5: skip players who are Out
         if (!canAutoX(card, c)) return;
         if (undoList) undoList.push({ card, col: c, old: { ...cellState[card][c], marks:[...(cellState[card][c].marks||[])] } });
-        markCell(card, c, 'cross');
+        markCell(card, c, 'cross', extra);
         renderCell(card, c);
     });
     updateSolutionFlags([card]);
@@ -1986,7 +2002,7 @@ function setMeColExplicit(col) {
             if (cellState[card] && cellState[card][prevMeCol]) {
                 cellState[card][prevMeCol] = {
                     check:false, cross:false, asked:false, showed:false,
-                    shownToMe:false, meShowedTo:'', iShowedMe:false, marks:[],
+                    shownToMe:false, iShowedMe:false, marks:[],
                 };
             }
         });
@@ -2099,6 +2115,7 @@ function startGame() {
     // These are SETUP-derived marks — even though gamePhase is now 'play',
     // they should carry turn tag 0 because they represent what was known at start.
     ALL_CARDS.forEach(card => {
+        if (!isRowActive(card)) return;   // muted rows take no marks
         if (!cellState[card][meCol].check) {
             markCell(card, meCol, 'cross', { turn: 0 });
         } else {
@@ -2145,7 +2162,7 @@ function _doEditSetup() {
     ALL_CARDS.forEach(card => {
         for (let c = 0; c < MAX_PLAYERS; c++) {
             if (c !== meCol)
-                cellState[card][c] = { check:false, cross:false, asked:false, showed:false, shownToMe:false, meShowedTo:'', iShowedMe:false };
+                cellState[card][c] = { check:false, cross:false, asked:false, showed:false, shownToMe:false, iShowedMe:false };
         }
     });
 
@@ -2178,6 +2195,7 @@ function _doEditSetup() {
 // ═══════════════════════════════════════════════════════════════════
 function onCellClick(e) {
     e.preventDefault(); e.stopPropagation();
+    clearShowerUndoArm();  // any cell tap cancels a pending shower-undo confirm
     const td   = e.currentTarget;
     const card = td.dataset.card;
     const col  = parseInt(td.dataset.col);
@@ -2216,7 +2234,7 @@ function onCellClick(e) {
             showStatus('Click a card in the current player\'s column to mark Asked.', 'var(--red-lt)'); return;
         }
         if (pendingAsked.find(p => p.card === card)) return;
-        if (mutedCards.has(card)) { showStatus('This card is muted — double-click it to activate.', 'var(--red-lt)'); return; }
+        if (!isRowActive(card)) { showStatus('This card is muted — it isn\'t in play. Muting can only be changed in Setup.', 'var(--red-lt)'); return; }
         const askLimit = activeCategoryCount(); // M2: one card per ACTIVE category
 
         // M11/18: one guess per ACTIVE category. If a pending ask already exists
@@ -2315,6 +2333,9 @@ document.getElementById('headerRow').addEventListener('click', e => {
     // Block inactive columns (not in turnOrder)
     if (!turnOrder.includes(col)) return;
 
+    // Tapping any header other than the armed one cancels a pending shower-undo confirm.
+    if (showerUndoArmed !== -1 && showerUndoArmed !== col) clearShowerUndoArm();
+
     // M5: Block QUIT players — they can't be the shower. M10/05: WrongAcc players
     //   still hold cards and must still show, so they ARE allowed as the shower.
     if (isQuit(col)) {
@@ -2391,13 +2412,25 @@ document.getElementById('headerRow').addEventListener('click', e => {
     // Block locked headers
     if (th.classList.contains('col-locked')) return;
 
-    if (committedAsked.length === 0 && pendingAsked.length === 0) {
+    // #7: a guess set must be COMPLETE (one card per active category) before
+    // a shower can be recorded — the game rules don't allow a partial ask.
+    // Covers both no picks yet and a partial set still pending.
+    if (committedAsked.length === 0) {
         showStatus(`Click ${activeCategoryCount()} card${activeCategoryCount()===1?'':'s'} in the current player's column first.`, 'var(--red-lt)'); return;
     }
-    if (pendingAsked.length > 0) commitAsked();
 
-    // Toggle — clicking same header again undoes showed marks
+    // Toggle — second tap on the same shower header asks to confirm first;
+    // the confirming (third) tap actually reverts. Stops a stray double-tap
+    // from silently undoing the shower. Doing anything else cancels the arm.
     if (pendingShowed.length > 0 && pendingShowed[0].col === col) {
+        if (showerUndoArmed !== col) {
+            showerUndoArmed = col;
+            showStatus(`Tap ${getColName(col)} again to remove them as shower.`, 'var(--red-lt)');
+            if (showerUndoTimer) clearTimeout(showerUndoTimer);
+            showerUndoTimer = setTimeout(clearShowerUndoArm, 5000);
+            return;
+        }
+        clearShowerUndoArm();
         // Full rollback of committed showed + auto-✗
         committedShowedUndo.forEach(({ card, col: c, old }) => {
             cellState[card][c] = { ...old };
@@ -2428,6 +2461,7 @@ document.getElementById('headerRow').addEventListener('click', e => {
 
     // Immediately apply S marks and auto-✗ passing players
     const showerCol = col;
+    clearShowerUndoArm();     // new shower selection resets the undo-confirm arm
     committedShowedUndo = []; // fresh slate
 
     committedAsked.forEach(p => {
@@ -2546,7 +2580,7 @@ function canAutoX(card, col) {
     // Patrick's rule: the first ✗ wins — no stacking. A cell already marked stays as-is.
     if (s.shownToMe) return false; // confirmed shown to me
     if (s.check)     return false; // has this card (includes Me's setup cards)
-    if (s.cross)     return false; // already Xed — keep the original turn tag
+    if (s.cross)     return false; // already Xed — leave the existing ✗ in place
     return true; // blank, A, S are overwritable
 }
 
@@ -2619,7 +2653,9 @@ function hasMarksForTurn(turn) {
         for (let c = 0; c < MAX_PLAYERS; c++) {
             const cs = cellState[card] && cellState[card][c];
             if (!cs) continue;
-            if ((cs.marks || []).some(m => m.turn === turn)) return true;
+            // M13/01: quit-flagged marks are permanent — they don't make a
+            //   turn "in progress" for Undo purposes.
+            if ((cs.marks || []).some(m => m.turn === turn && !m.quit)) return true;
         }
     }
     return false;
@@ -2631,7 +2667,8 @@ function removeMarksForTurn(turn) {
         for (let c = 0; c < MAX_PLAYERS; c++) {
             const cs = cellState[card] && cellState[card][c];
             if (!cs) continue;
-            cs.marks = (cs.marks || []).filter(m => m.turn !== turn);
+            // M13/01: quit-flagged marks survive Undo (no unringing the bell).
+            cs.marks = (cs.marks || []).filter(m => m.turn !== turn || m.quit);
             recomputeCellBooleans(card, c);
         }
     });
@@ -2698,7 +2735,7 @@ function _doSetupUndoFromStep5() {
             if (cellState[card] && cellState[card][meCol]) {
                 cellState[card][meCol] = {
                     check:false, cross:false, asked:false, showed:false,
-                    shownToMe:false, meShowedTo:'', iShowedMe:false, marks:[],
+                    shownToMe:false, iShowedMe:false, marks:[],
                 };
             }
         });
@@ -2769,7 +2806,11 @@ function _doPlayUndo(inProgressNow) {
         // Step 2: nothing in this turn — rewind to the previous turn
         turnCount--;
         removeMarksForTurn(turnCount);
-        if (gameLog.length > 0) gameLog.pop();
+        // M13/01: remove the last NORMAL turn entry — e.out entries (Quit /
+        //   Wrong Accusation) are permanent and survive the rollback.
+        for (let i = gameLog.length - 1; i >= 0; i--) {
+            if (!gameLog[i].out) { gameLog.splice(i, 1); break; }
+        }
         turnStep = (turnStep - 1 + turnOrder.length) % turnOrder.length;
         let safety = 0;
         while (isPlayerOut(turnOrder[turnStep]) && safety < turnOrder.length) {
@@ -2799,6 +2840,19 @@ function nextPlayer() {
     // M5+: in setup, Next advances the wizard step (no game state change).
     if (gamePhase === 'setup') {
         if (setupStep < 5) {
+            // M12/02: gate Step 4 → Step 5 transition on at least 2 named
+            //   players. Was previously checked at Start Game, which let the
+            //   user waste effort in Step 5 picking Me and held cards before
+            //   being told they're short of players. Once past this gate,
+            //   name inputs are disabled (setupStep !== 4) so they can't be
+            //   erased back below 2.
+            if (setupStep === 4) {
+                const namedCount = getHeaderNames().filter(n => (n || '').trim().length > 0).length;
+                if (namedCount < 2) {
+                    showStatus('At least 2 player names are required.', 'var(--red-lt)');
+                    return;
+                }
+            }
             // M11/14: capture the step we're leaving as its snapshot, then restore
             //   the destination step's snapshot if it exists (re-entry). On first
             //   forward visit there's no snapshot, so we clear the typing stack
@@ -2826,8 +2880,6 @@ function nextPlayer() {
     const askedCards = committedAsked.map(p => p.card);
     const showerCol  = pendingShowed.length > 0 ? pendingShowed[0].col : -1;
     const showerName = showerCol >= 0 ? getColName(showerCol) : '';
-    const hasData    = askedCards.length > 0 || pendingShowed.length > 0 ||
-                       pendingShownMe.length > 0 || pendingIShowed.length > 0;
 
     // GUARD #3 (mobile parity): "nobody showed" sequence guard.
     // If there's a committed guess and no shower has been recorded, walk the ring
@@ -2870,33 +2922,9 @@ function nextPlayer() {
         // If committed, already applied and already in committedShowedUndo
     });
 
-    // Apply shown-to-me — skip if already committed via plain click in onCellClick
-    pendingShownMe.forEach(p => {
-        if (!p.committed) {
-            const s = cellState[p.card][p.col];
-            cellChangesBefore.push({ card: p.card, col: p.col, old: { ...s, marks:[...(s.marks||[])] } });
-            markCell(p.card, p.col, 'check');
-            markCell(p.card, p.col, 'shownToMe');
-            renderCell(p.card, p.col);
-            // ✓ in any column → ✗ in the rest of the row (skip Me; skip already-marked).
-            applyAutoXOnCheck(p.card, p.col);
-        }
-        // M5+: skip auto-✗ if the popup/handler already did the ring-loop immediately.
-        if (p.autoXDone) return;
-        const n        = turnOrder.length;
-        const askerCol = meCol;
-        const askerIdx = turnOrder.indexOf(askerCol);
-        const allAsked = committedAsked.map(q => q.card);
-        let i = (askerIdx + 1) % n;
-        let steps = 0;
-        while (turnOrder[i] !== p.col && steps < n) {
-            if (!isQuit(turnOrder[i])) {
-                allAsked.forEach(ac => applyAutoX(ac, turnOrder[i], cellChangesBefore));
-            }
-            i = (i + 1) % n;
-            steps++;
-        }
-    });
+    // #9: Shown-to-me needs no marks here — the Me-as-shower popup already
+    // applied the ✓ + ✓* and the passer auto-✗s when the card was picked.
+    // pendingShownMe still feeds the log entry and solution flags below.
 
     // Apply I-showed — skip if already committed, mark in asker's column
     pendingIShowed.forEach(p => {
@@ -2957,7 +2985,7 @@ function nextPlayer() {
     // Update solution flags
     updateSolutionFlags([...askedCards, ...pendingShownMe.map(p=>p.card), ...pendingIShowed.map(p=>p.card)]);
 
-    // Push undo snapshot — replace partial one if commitAsked already pushed one
+    // Push undo snapshot — replace the partial one if the guess auto-commit pushed one
     if (undoStack.length > 0 && undoStack[undoStack.length - 1].partial) {
         undoStack.pop(); // remove the partial snapshot
     }
@@ -3131,8 +3159,7 @@ function renderFullLog() {
         if (e.manual) {
             const sym = (e.manualAction === 'check')  ? '<span class="sym-check">✓</span>'
                       : (e.manualAction === 'cross')  ? '<span class="sym-cross">✗</span>'
-                      : (e.manualAction === 'blank')  ? '<span class="log-nobody">blank</span>'
-                      :                                 '<span class="log-nobody">auto</span>';
+                      :                                 '<span class="log-nobody">blank</span>';
             html += ` <span class="log-arrow">—</span> <span class="log-asked">${e.manualCard}</span> <span class="log-arrow">→</span> ${sym}`;
             div.innerHTML = html;
             list.appendChild(div);
@@ -3141,10 +3168,21 @@ function renderFullLog() {
 
         // M11/03: Room mark log entry — "🏠 [card] → ✓" or "blank" (toggle off).
         if (e.room) {
-            const sym = (e.roomAction === 'check')
-                ? '<span class="sym-check">✓</span>'
-                : '<span class="log-nobody">blank</span>';
-            html = `<span class="log-turn">${tLabel}</span> <span class="log-who">🏠 Room</span> <span class="log-arrow">—</span> <span class="log-asked">${e.roomCard}</span> <span class="log-arrow">→</span> ${sym}`;
+            const sym = '<span class="sym-check">✓</span>';
+            html = `<span class="log-turn">${tLabel}</span> <span class="log-who">🏠 House-room</span> <span class="log-arrow">—</span> <span class="log-asked">${e.roomCard}</span> <span class="log-arrow">→</span> ${sym}`;
+            div.innerHTML = html;
+            list.appendChild(div);
+            return;
+        }
+
+        // M13/01: Player-out entry — permanent. "👋 Quit (showed: …)" or
+        //   "😢 Wrong Accusation". Undo never removes these.
+        if (e.out) {
+            const sym  = (e.outKind === 'wrongacc') ? '😢' : '👋';
+            const word = (e.outKind === 'wrongacc') ? 'Wrong Accusation' : 'Quit';
+            const cards = (e.outCards && e.outCards.length)
+                ? ` <span class="log-asked">(showed: ${e.outCards.join(' · ')})</span>` : '';
+            html += ` <span class="log-arrow">—</span> <span class="log-nobody">${sym} ${word}</span>${cards}`;
             div.innerHTML = html;
             list.appendChild(div);
             return;
@@ -3195,16 +3233,6 @@ function renderFullLog() {
     });
 }
 
-function setCell(card, col, props) {
-    Object.assign(cellState[card][col], props);
-    renderCell(card, col);
-    if (props.check) autoXRestOfRow(card, col);
-    autoSave();
-}
-function clearCell(card, col) {
-    cellState[card][col] = { check:false, cross:false, asked:false, showed:false, shownToMe:false, meShowedTo:'', iShowedMe:false };
-    renderCell(card,col); autoSave();
-}
 
 // ═══════════════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════════
@@ -3284,25 +3312,9 @@ function applySnapshot(d) {
     buildTable(); // rebuild with restored names
 
     cellState    = d.cellState    || {};
-    // Backfill the M5+ marks list for any legacy save that lacks it
-    Object.keys(cellState).forEach(card => {
-        const colMap = cellState[card]; if (!colMap) return;
-        Object.keys(colMap).forEach(colKey => {
-            const cs = colMap[colKey];
-            if (!cs) return;
-            if (!Array.isArray(cs.marks)) cs.marks = [];
-            if (cs.marks.length === 0) {
-                // Reconstruct from booleans, with turn 0 as a "no record" placeholder
-                if (cs.check)      cs.marks.push({ type:'check',      turn:0 });
-                if (cs.cross)      cs.marks.push({ type:'cross',      turn:0 });
-                if (cs.asked)      cs.marks.push({ type:'asked',      turn:0 });
-                if (cs.showed)     cs.marks.push({ type:'showed',     turn:0 });
-                if (cs.shownToMe)  cs.marks.push({ type:'shownToMe',  turn:0 });
-                if (cs.iShowedMe)  cs.marks.push({ type:'iShowedMe',  turn:0 });
-                if (cs.meShowedTo) cs.marks.push({ type:'meShowedTo', turn:0, to:cs.meShowedTo });
-            }
-        });
-    });
+    // M11/36: legacy backfill (fake turn-0 marks from booleans for pre-M5 saves)
+    //   removed — every current save already has the marks list, so the
+    //   backfill no longer protects anything in real use.
     gameLog      = d.gameLog      || [];
     turnOrder    = d.turnOrder && d.turnOrder.length > 0 ? d.turnOrder : buildTurnOrder();
     turnStep     = d.turnStep     || 0;
@@ -3520,36 +3532,42 @@ function updatePhaseBarText() {
             dir.innerHTML = '— Step 5: Right-click your column header. Click your cards.';
         }
     } else {
-        // Play — prefix carries the turn number; Phase Bar directive carries whose turn it is
-        // for the entire turn. Deck Bar (in play mode) carries the dynamic state
-        // (thinking / guessing / waiting / showed). Header directive is cleared in play.
+        // M12/03 — Option B split:
+        //   Phase Bar     = identity context (turn number + whose turn it is).
+        //   Directives Bar (Deck Bar in Play) = action context (state + instruction).
+        //   showStatus() still writes to phaseDirective; a status message
+        //   briefly covers the identity line — the user can still read the
+        //   Directives Bar for action context.
         pre.textContent = `🎮 Game · Turn ${turnCount}`;
         if (hdr) hdr.textContent = '';
         const cur = getCurrentCol();
         const isMe = (cur === meCol);
         const name = isMe ? 'You' : getCurrentPlayerName();
-        const turnLabel = isMe ? `— Your turn` : `— ${name}'s turn`;
+        // Phase Bar directive: just whose turn it is.
+        dir.textContent = isMe ? `— Your turn` : `— ${name}'s turn`;
+        // Directives Bar: state + instruction.
         const hasShowed = pendingShowed.length > 0
                         || pendingShownMe.some(p => p.committed)
                         || pendingIShowed.some(p => p.committed);
-        let directiveText;
+        let stateText, instructionText;
         if (hasShowed) {
-            // Cards have been shown — next action is to advance the turn.
             const showerName = pendingShowed.length > 0 ? getColName(pendingShowed[0].col)
                              : (pendingIShowed.length > 0 ? 'You' : (pendingShownMe[0] && pendingShownMe[0].player) || name);
-            directiveText = `${showerName} showed`;
-            dir.textContent = `— Tap Next to continue.`;
+            stateText = `${showerName} showed`;
+            instructionText = `Tap Next to continue.`;
         } else if (committedAsked.length > 0) {
-            // 3 cards committed — next action is to tap the shower column header
-            // (or Next if nobody showed).
-            directiveText = isMe ? `You are waiting` : `${name} is waiting`;
-            dir.textContent = `— Tap the column header of the player who showed, or Next if nobody.`;
+            stateText = isMe ? `You are waiting` : `${name} is waiting`;
+            instructionText = `Tap the column header of the player who showed, or Next if nobody.`;
+        } else if (pendingAsked.length === 0) {
+            // M12/03: no asks picked yet — Thinking stage.
+            stateText = isMe ? `You are thinking` : `${name} is thinking`;
+            instructionText = `Tap all cards guessed, or tap Next if the player does not reach a room.`;
         } else {
-            // 0–2 cards picked so far — still selecting the guess.
-            directiveText = isMe ? `You are guessing` : `${name} is guessing`;
-            dir.textContent = `${turnLabel} - Tap the 3 cards guessed`;
+            // 1–2 asks picked — Guessing stage.
+            stateText = isMe ? `You are guessing` : `${name} is guessing`;
+            instructionText = `Tap all cards guessed.`;
         }
-        if (dkDir) dkDir.textContent = directiveText;
+        if (dkDir) dkDir.textContent = `${stateText} — ${instructionText}`;
     }
 }
 
@@ -3694,6 +3712,7 @@ function toggleGuide() {
     const wasOpen = g.classList.contains('visible');
     r.classList.remove('visible');
     document.getElementById('btnRules')?.classList.remove('active');
+    if (typeof closeHelpersPanel === 'function') closeHelpersPanel(); // F1 optional-rules panel
     if (wasOpen) {
         g.classList.remove('visible');
         document.getElementById('btnGuide')?.classList.remove('active');
@@ -3708,6 +3727,7 @@ function toggleRules() {
     const wasOpen = r.classList.contains('visible');
     g.classList.remove('visible');
     document.getElementById('btnGuide')?.classList.remove('active');
+    if (typeof closeHelpersPanel === 'function') closeHelpersPanel(); // F1 optional-rules panel
     if (wasOpen) {
         r.classList.remove('visible');
         document.getElementById('btnRules')?.classList.remove('active');
@@ -3796,8 +3816,8 @@ function setGuideContent() {
         <h3>Turn play</h3>
         <p>Each turn follows the same shape. The page header on the left shows where the turn is at — <em>thinking</em>, <em>guessing</em>, <em>waiting</em>, <em>showed</em> — so you can glance up and orient yourself.</p>
         <ul>
-            <li><strong>Click the asked cards.</strong> When a player asks about three cards, click those three cards in the asking player's column. A ? mark drops in.</li>
-            <li><strong>Click the shower's column header.</strong> When someone shows, click their player-header. The app records the shown cards with a ! mark on each of the three cards in their column and drops a ✗ on the card for every player that passed in between — those players couldn't show, so they don't hold any of the three cards.</li>
+            <li><strong>Click the asked cards.</strong> When a player makes a guess, click each of the asked cards in the asking player's column. A ? mark drops in.</li>
+            <li><strong>Click the shower's column header.</strong> When someone shows, click their player-header. The app records the shown cards with a ! mark on each asked card in their column and drops a ✗ on the card for every player that passed in between — those players couldn't show, so they don't hold any of the asked cards.</li>
             <li><strong>When it's your turn to ask or to be shown,</strong> a small popup appears so you can record which card was involved. A ✓* on the shower's column captures "you saw it" and a ←Me on the asker's column captures "you showed it."</li>
             <li><strong>Press Next.</strong> At the end of the current player's turn tap Next. The turn advances and a new entry lands in the Game Log on the right.</li>
             <li><strong>Undo —</strong> If at any point you want to go back to the beginning of the current turn or the previous turn, tap Undo. Every mark that was entered during that turn will be erased.</li>
@@ -4032,16 +4052,6 @@ function isPlayerOut(col) { return !!playerOutKind[col]; }
 function isQuit(col)      { return playerOutKind[col] === 'quit'; }
 function isWrongAcc(col)  { return playerOutKind[col] === 'wrongacc'; }
 function getOutKind(col)  { return playerOutKind[col] || ''; }
-// Back-compat shim — older code paths still reference mutedPlayers as a Set.
-// Calling has() works; .add()/.delete() do not — callers are migrated to set
-// playerOutKind directly. (.size still reports the count.)
-const mutedPlayers = {
-    has: (col) => isPlayerOut(col),
-    get size() { return Object.keys(playerOutKind).length; },
-    [Symbol.iterator]: function*() {
-        for (const k of Object.keys(playerOutKind)) yield parseInt(k, 10);
-    }
-};
 
 // M10/01: setupStep was moved earlier (before buildTable startup call) — see comment there.
 
@@ -4055,16 +4065,20 @@ const mutedPlayers = {
 //   last left it. typingUndoStack rides inside each snapshot too, so
 //   it accumulates with the step instead of being wiped at every transition.
 // ═══════════════════════════════════════════════════════════════════
-let stepSnapshots = {};   // { [stepNum]: { categories, mutedCategoryIdxs, mutedCards,
-                          //                headerNames, playerNicknames, typingUndoStack } }
+let stepSnapshots = {};   // M12/01: { [stepNum]: { categories, mutedCategoryIdxs,
+                          //                          mutedCards, typingUndoStack } }
+                          //   Names + nicknames are NOT snapshotted; the DOM input
+                          //   boxes own those (Step 4 is the only step that edits them).
 
+// M12/01: per-step snapshots no longer carry headerNames / playerNicknames.
+//   Player names and nicknames are only editable in Step 4, so the DOM input
+//   boxes are the single source of truth. Snapshotting them per step caused
+//   a stale Step-5 snapshot to clobber later edits made back in Step 4.
 function captureStepSnapshot() {
     return {
         categories:        CATEGORIES.map(c => ({ name: c.name, cards: [...c.cards] })),
         mutedCategoryIdxs: [...mutedCategoryIdxs],
         mutedCards:        [...mutedCards],
-        headerNames:       getHeaderNames(),
-        playerNicknames:   [...playerNicknames],
         typingUndoStack:   typingUndoStack.map(e => ({ ...e })),
     };
 }
@@ -4075,15 +4089,7 @@ function restoreStepSnapshot(snap) {
     normalizeCategoryShape();
     mutedCategoryIdxs = new Set(snap.mutedCategoryIdxs || []);
     mutedCards        = new Set(snap.mutedCards || []);
-    applyHeaderNames(snap.headerNames || []);
-    playerNicknames = Array.isArray(snap.playerNicknames)
-        ? snap.playerNicknames.slice(0, MAX_PLAYERS).map(v => (typeof v === 'string' ? v.slice(0, 4) : ''))
-        : Array(MAX_PLAYERS).fill('');
-    for (let i = 0; i < MAX_PLAYERS; i++) {
-        const ce = document.getElementById('p' + (i + 1) + 'c');
-        if (ce) ce.value = playerNicknames[i] || '';
-    }
-    refreshNicknameDisplays();
+    // M12/01: headerNames + playerNicknames intentionally NOT restored — see capture.
     typingUndoStack = (snap.typingUndoStack || []).map(e => ({ ...e }));
     rebuildAllCards();
     buildTable();
@@ -4212,7 +4218,6 @@ let roomChecked = new Set();
 // the most recent committed ✓, so a later cycle can roll it back precisely.
 let roomCycleSnapshot = {};
 let roomUndoLists     = {};
-function isRoomChecked(card) { return roomChecked.has(card); }
 
 // Click handler — display-only. No row propagation, no log entry; the
 // commit on mouseleave handles both.
@@ -4233,16 +4238,14 @@ function toggleRoomDisplay(card) {
     if (roomChecked.has(card)) roomChecked.delete(card);
     else                       roomChecked.add(card);
     renderRoomCell(card);
-    renderSummaryCell(card);
     autoSave();
 }
 
-// Commit on mouseleave. Same logic as the manual-mark commit:
-// • final state == snapshot   → no-op, drop any log entry
-// M11/34: reconcile row propagation with the final cur state at mouseleave.
-//   If cur=true and there's no undoList, propagate (✗s). If cur=false and an
-//   undoList exists (e.g., double-toggle re-checked then un-checked again),
-//   undo it. This is robust against any toggle sequence inside one cycle.
+// Commit on mouseleave. Reconcile row propagation with the final checked
+//   state (M11/34): if checked and not already propagated, ✗ the rest of the
+//   row; if unchecked, roll back any ✗s propagated earlier in this cycle.
+//   Robust against any toggle sequence within one cycle. logRoomMark drops
+//   the house log entry when the card ends up unchecked.
 function commitRoomCycle(card) {
     if (!(card in roomCycleSnapshot)) return; // no active cycle
     delete roomCycleSnapshot[card];
@@ -4260,7 +4263,6 @@ function commitRoomCycle(card) {
         }
         logRoomMark(card, 'blank');
     }
-    renderSummaryCell(card);
     renderFullLog();
     autoSave();
 }
@@ -4284,7 +4286,9 @@ function renderRoomCell(card) {
 // manual marks: only the active state stays in the Log. Unchecking a
 // room mark removes its entry — the card is no longer "on the board."
 function logRoomMark(card, action) {
-    gameLog = gameLog.filter(e => !(e.room && e.roomCard === card));
+    // M12: true log — only the current turn's house entry for this card is
+    // replaced; house entries from earlier turns are history and stay put.
+    gameLog = gameLog.filter(e => !(e.room && e.roomCard === card && e.turn === turnCount));
     if (action === 'blank') return;
     gameLog.push({
         turn: turnCount,
@@ -4303,12 +4307,18 @@ function openMeAskerPicker(showerCol, askedCards) {
     wrapper.appendChild(intro);
     const row = document.createElement('div');
     row.style.cssText = 'display:flex; flex-wrap:wrap; gap:8px; justify-content:center;';
-    // The shower could only have shown a card Me does NOT hold — filter them out entirely.
-    // Mobile parity: removed from the picker rather than greyed.
-    const showableCards = askedCards.filter(card =>
-        !(cellState[card] && cellState[card][meCol] && cellState[card][meCol].check)
-    );
-    const cardsForPicker = showableCards.length > 0 ? showableCards : askedCards;
+    // M12/06: single rule — any card the shower's column has ✗ on can't
+    //   be what they revealed. This catches all impossibilities in one check:
+    //     - cards Me holds (auto-X propagated ✗ to every other player at Start Game)
+    //     - cards already confirmed in another player's hand (auto-X)
+    //     - house-checked cards (auto-X propagated ✗ to every player)
+    //     - direct ✗ on the shower from earlier turns
+    //   B5.5's guard rejects clicks on a shower with ✗ on every asked card,
+    //   so the popup never opens empty — no fallback needed.
+    const cardsForPicker = askedCards.filter(card => {
+        const cs = cellState[card];
+        return !(cs && cs[showerCol] && cs[showerCol].cross);
+    });
     cardsForPicker.forEach(card => {
         const btn = document.createElement('button');
         btn.className = 'btn btn-gold';
@@ -4320,9 +4330,9 @@ function openMeAskerPicker(showerCol, askedCards) {
             markCell(card, showerCol, 'shownToMe');
             // ✓ in any column → ✗ in the rest of the row (skip Me; skip already-marked).
             applyAutoXOnCheck(card, showerCol);
-            // M11/23: meShowedTo mark on Me's column dropped — the ✓* on the
+            // M11/23: no in-cell mark on Me's column here — the ✓* on the
             //   shower's column and the Log entry already carry "who showed Me
-            //   what", so the in-cell ←Player mark was redundant noise.
+            //   what", so an extra in-cell ←Player mark was redundant noise.
             // M5+: ring-loop only — ✗ the players who PASSED (between asker and shower) on ALL 3 asked cards.
             const n        = turnOrder.length;
             const askerIdx = turnOrder.indexOf(meCol);
@@ -4448,7 +4458,7 @@ function openPlayerOutModal(col) {
         bodyHTML:
             `<div style="margin-bottom:10px;">How is <strong>${name}</strong> out of the game?</div>` +
             `<div style="display:flex;flex-direction:column;gap:8px;">` +
-              `<button class="btn btn-red"   id="markOutQuitBtn"     style="text-align:left;">👋 <strong>Quit</strong> — they're gone. Skipped everywhere; their column freezes.</button>` +
+              `<button class="btn btn-red"   id="markOutQuitBtn"     style="text-align:left;">👋 <strong>Quit</strong> — they're gone. Skipped everywhere; the rest of their column gets ✗.</button>` +
               `<button class="btn btn-ghost" id="markOutWrongAccBtn" style="text-align:left;">😢 <strong>Wrong Accusation</strong> — turn skipped, but they still hold cards and must show.</button>` +
             `</div>`,
         buttons: [
@@ -4539,18 +4549,51 @@ function _openPlayerOutCardPicker(col, kind) {
                 playerOutKind[col] = kind; // 'quit' | 'wrongacc'
                 // Apply ✓ to any cards the player revealed (and auto-✗ rest of row).
                 // Existing ✗ marks (if any) are preserved as historical record per the no-erase rule.
+                // M13/01: everything a Mark Out places is permanent — marks carry
+                //   quit:true so Undo can never remove them (cards seen / envelope
+                //   seen; no unringing the bell).
                 picked.forEach(card => {
                     if (cellState[card] && cellState[card][col]) {
-                        markCell(card, col, 'check');
-                        if (typeof autoXRestOfRow === 'function') autoXRestOfRow(card, col);
+                        markCell(card, col, 'check', { quit: true });
+                        if (typeof autoXRestOfRow === 'function') autoXRestOfRow(card, col, null, { quit: true });
                     }
                 });
+                // M13/01: Quit only — the player's hidden cards leave the game.
+                //   ✗ the rest of their column so sweeps and the secret-answer
+                //   check can resolve. Wrong Accusation keeps a live column
+                //   (they still show cards on future turns).
+                if (kind === 'quit') {
+                    const filled = [];
+                    CATEGORIES.forEach((cat, ci) => {
+                        if (!isCategoryActive(ci)) return;
+                        cat.cards.forEach(card => {
+                            if (!isCardActive(card)) return;
+                            const s = cellState[card] && cellState[card][col];
+                            if (!s || s.check || s.cross) return;
+                            markCell(card, col, 'cross', { quit: true });
+                            filled.push(card);
+                        });
+                    });
+                    updateSolutionFlags(filled);
+                }
+                // M13/01: permanent log entry (e.out) — survives Undo.
+                gameLog.push({
+                    turn: turnCount, playerIdx: col, player: getColName(col), isMe: false,
+                    out: true, outKind: kind, outCards: [...picked],
+                });
+                renderFullLog();
                 applyPlayerOutBadges();
                 applyInactiveColStyling();
                 renderAllCells();
                 renderInfoBar();
                 const kindWord = (kind === 'wrongacc') ? 'Wrong Accusation' : 'Quit';
                 showStatus(`${name} is Out — ${kindWord}${picked.size ? ` (${picked.size} card${picked.size>1?'s':''} marked)` : ''}.`, 'var(--green-lt)');
+                // M13/02: if the player just marked Out holds the turn, advance
+                //   for them — same path as pressing Next (empty turn → "did not
+                //   reach a room"), so Undo's one-entry-per-turn pairing stays intact.
+                if (gamePhase === 'play' && getCurrentCol() === col) {
+                    nextPlayer();
+                }
                 autoSave();
             } }
         ]
@@ -4580,9 +4623,13 @@ function loadLastUsedDeck() {
 
 function snapshotCurrentDeck(name) {
     // A Game Deck stores the Card-column data (category names, card names, divider positions)
-    // PLUS the player column-header names. The player names ride along so loading a deck on
-    // another laptop (via export/import, OneDrive sync, etc.) brings back the same suspect
-    // line-up. Marks, muted state, notes, gameLog, turnCount, etc. are NOT in the deck.
+    // PLUS the player column-header names AND the muted layout (which categories/cards are
+    // switched off). The player names ride along so loading a deck on another laptop (via
+    // export/import, OneDrive sync, etc.) brings back the same suspect line-up; the muted
+    // layout rides along so the deck loads with exactly the cards/categories it was saved with.
+    // Marks, notes, gameLog, turnCount, etc. are NOT in the deck (a deck load wipes the grid).
+    // M11/28 (#15): mutedCategoryIdxs + mutedCards now saved. mutedCards is stored by NAME,
+    //   which is safe because those names ARE this deck's own card names — they match on load.
     // M10/01: `players` field added (Item #3 pull-forward — save with deck).
     // M10/Me: the deck never carries the "Me" header label or meCol. If a Me column is
     //   currently picked, write the original suspect name back into that slot so the deck
@@ -4592,12 +4639,16 @@ function snapshotCurrentDeck(name) {
         players[meCol] = meOriginalName;
     }
     return {
-        name: (name || 'Deck').trim().slice(0, 24) || 'Deck',
+        name: (name || 'Deck').trim().slice(0, 6) || 'Deck',
         categories: CATEGORIES.map(c => ({ name:c.name, cards:[...c.cards] })),
         players: players,
         // M10/04: 4-char nicknames ride with the players so the same seat-name layout
         //   ("Scarlett (Pat)") comes back on every laptop after a deck load.
-        nicknames: [...playerNicknames]
+        nicknames: [...playerNicknames],
+        // M11/28 (#15): muted layout saved with the deck so a load restores exactly the
+        //   cards/categories that were switched off when it was saved.
+        mutedCategoryIdxs: [...mutedCategoryIdxs],
+        mutedCards:        [...mutedCards]
     };
 }
 
@@ -4649,7 +4700,7 @@ function loadGameDeck(idx) {
     if (!deck) return;
     // M10/03: Offer "Load saved names?" if this deck was saved with player names.
     const hasPlayers = Array.isArray(deck.players) && deck.players.some(n => n && n.trim());
-    let bodyHTML = `Load Game Deck "<strong>${deck.name}</strong>"? Category and card names will change.`;
+    let bodyHTML = `Load Game Deck "<strong>${deck.name}</strong>"? Category and card names will change, and <strong>all marks on the board will be cleared</strong>.`;
     if (hasPlayers) {
         bodyHTML += ` <br><br><label style="display:flex;align-items:center;gap:6px;cursor:pointer;">`
                   + `<input type="checkbox" id="loadDeckPlayersChk" checked> `
@@ -4672,23 +4723,20 @@ function loadGameDeck(idx) {
 function _doLoadGameDeck(idx, deck, opts) {
     opts = opts || {};
     // ─────────────────────────────────────────────────────────────────────
-    // Deck load swaps ONLY the Card-column data — category names and card names.
-    // Everything else is preserved in place by POSITION:
-    //   • cellState marks (including Me's ✓), per-row, per-column
-    //   • summaryMarks (∑ marks)
-    //   • mutedCategoryIdxs, mutedCards, mutedPlayers — UNTOUCHED
+    // M11/28 (#15): Deck load WIPES the grid, then sets the new deck's labels
+    // and muted layout.
+    //   • cellState marks (including Me's ✓), summaryMarks (∑), roomChecked — ALL WIPED
+    //   • mutedCategoryIdxs / mutedCards — set FROM THE DECK (old decks with no
+    //     stored layout fall back to the built-in default: Cat 4 + last 3 cards)
     //   • playerNames, playerNicknames, gameLog, turnCount, gamePhase — UNTOUCHED
+    // Rationale: a preserved ✓ could silently re-point to a different card after the
+    // labels change, so we clear the board rather than carry marks across decks.
+    // The startup auto-restore (~3690) only loads a deck when no game is in progress,
+    // so wiping there is harmless and correctly applies the deck's saved mutes.
     // M11/01: cellNotes capture removed (mini-notes feature retired).
     // ─────────────────────────────────────────────────────────────────────
 
-    // 1) Capture every per-card state by ORDINAL POSITION (0..29) before we rename cards.
-    const oldOrder = [...ALL_CARDS];
-    const marksByPos = oldOrder.map(card => cellState[card] || null);
-    const sumByPos   = oldOrder.map(card => summaryMarks[card] || '');
-    // M11/03: capture room-checked state by ordinal position too.
-    const roomByPos  = oldOrder.map(card => roomChecked.has(card));
-
-    // 2) Apply the new deck's names + divider positions.
+    // 1) Apply the new deck's names + divider positions.
     //    Tolerantly read old fat-format decks: only `categories[].name` and `categories[].cards`
     //    are consulted; any other field on the deck is ignored.
     const safeCats = Array.isArray(deck.categories) ? deck.categories : [];
@@ -4699,32 +4747,30 @@ function _doLoadGameDeck(idx, deck, opts) {
     normalizeCategoryShape();
     rebuildAllCards();
 
-    // 3) Rebuild cellState / summaryMarks keyed to the NEW card names,
-    //    using the captured-by-position data so every mark stays where it was on the grid.
+    // 2) WIPE the grid — build a fresh blank cellState for the new cards, and clear
+    //    summaryMarks + roomChecked. No marks carry across a deck load.
     // M11/01: cellNotes rebuild removed (mini-notes feature retired).
     const newCellState = {};
-    const newSummary   = {};
-    ALL_CARDS.forEach((card, i) => {
-        // cellState — reuse the captured row if any, else fresh blanks.
-        if (marksByPos[i]) {
-            newCellState[card] = marksByPos[i];
-        } else {
-            newCellState[card] = {};
-            for (let c = 0; c < MAX_PLAYERS; c++) {
-                newCellState[card][c] = { check:false, cross:false, asked:false, showed:false, shownToMe:false, meShowedTo:'', iShowedMe:false, marks:[] };
-            }
+    ALL_CARDS.forEach(card => {
+        newCellState[card] = {};
+        for (let c = 0; c < MAX_PLAYERS; c++) {
+            newCellState[card][c] = { check:false, cross:false, asked:false, showed:false, shownToMe:false, iShowedMe:false, marks:[] };
         }
-        // summaryMarks — copy the captured mark back under the new card key.
-        if (sumByPos[i]) newSummary[card] = sumByPos[i];
     });
     cellState    = newCellState;
-    summaryMarks = newSummary;
-    // M11/03: re-key room-checked set to the NEW card names by position.
-    const newRoomChecked = new Set();
-    ALL_CARDS.forEach((card, i) => {
-        if (roomByPos[i]) newRoomChecked.add(card);
-    });
-    roomChecked = newRoomChecked;
+    summaryMarks = {};
+    roomChecked  = new Set();
+
+    // 3) Set the muted layout FROM THE DECK. A deck saved after M11/28 carries its own
+    //    mutedCategoryIdxs + mutedCards (mutedCards by name — they match this deck's cards).
+    //    Old decks have neither field; fall back to the built-in default (Cat 4 + last 3).
+    if (Array.isArray(deck.mutedCategoryIdxs) || Array.isArray(deck.mutedCards)) {
+        mutedCategoryIdxs = new Set(Array.isArray(deck.mutedCategoryIdxs) ? deck.mutedCategoryIdxs : []);
+        mutedCards        = new Set(Array.isArray(deck.mutedCards)        ? deck.mutedCards        : []);
+    } else {
+        mutedCategoryIdxs = new Set([3]);
+        mutedCards        = new Set(['Card 28','Card 29','Card 30']);
+    }
 
     // 4) M10/03: Restore player names ONLY when caller asks for it.
     //    loadGameDeck() shows a "Load saved names?" checkbox in the popup and passes
@@ -4751,8 +4797,8 @@ function _doLoadGameDeck(idx, deck, opts) {
         refreshNicknameDisplays();
     }
 
-    // 5) Muted state, counts, gameLog, turn counters, gamePhase, undo stacks —
-    //    ALL preserved. Per the new rule, deck load never touches in-progress game state.
+    // 5) Player names/nicknames, gameLog, turn counters, gamePhase, undo stacks —
+    //    preserved. (Muted state is set from the deck in step 3; marks are wiped in step 2.)
     //
     // M10/Me: Me is session state, NOT deck data. Always clear it on deck load so each
     //   laptop picks its own Me via Step 5 (right-click suspect column). This also
@@ -4764,12 +4810,13 @@ function _doLoadGameDeck(idx, deck, opts) {
     lastUsedDeckIdx = idx;
     saveLastUsedDeck();
     buildTable();
+    applyInactiveColStyling();
     renderAllCells(); renderFullLog(); renderInfoBar(); updateUndoButton();
     renderDeckSlots();
     autoSave();
     // M6: Each deck slot has its own Rules text — refresh the textarea to match.
     loadRulesForCurrentDeck();
-    showDeckStatus(`Deck "${deck.name}" loaded — labels only; grid preserved.`, 'var(--green-lt)');
+    showDeckStatus(`Deck "${deck.name}" loaded — board cleared, ready to play.`, 'var(--green-lt)');
 }
 
 function deleteGameDeck(idx) {
@@ -4802,7 +4849,7 @@ function deleteGameDeck(idx) {
 // File shape is versioned so future loaders can read older exports.
 // ═══════════════════════════════════════════════════════════════════
 const DECK_FILE_FORMAT  = 'mystery-tracker-deck';
-const DECK_FILE_VERSION = 1;
+const DECK_FILE_VERSION = 2;   // was 1 — v2 adds the muted layout
 
 function openDeckSlotMenu(idx, x, y) {
     _ctxTarget = { kind:'deck-slot', idx }; _ctxX = x; _ctxY = y;
@@ -4866,6 +4913,8 @@ function exportDeckSlot(idx) {
         })),
         players:   Array.isArray(deck.players)   ? [...deck.players]   : [],
         nicknames: Array.isArray(deck.nicknames) ? [...deck.nicknames] : [],
+        mutedCategoryIdxs: [...(deck.mutedCategoryIdxs || [])],
+        mutedCards:        [...(deck.mutedCards || [])],
         rules:     rulesText
     };
 
@@ -4923,7 +4972,7 @@ function pickSlotForImport(data) {
         const d = decks[i];
         labels.push(d ? `Slot ${i+1}: ${d.name}` : `Slot ${i+1}: (empty)`);
     }
-    const importName = (data.name || 'Deck').toString().slice(0, 24);
+    const importName = (data.name || 'Deck').toString().slice(0, 6);
     let bodyHTML = `Import deck "<strong>${importName}</strong>" into which slot?<br><br>`
                  + `<div style="display:flex;flex-direction:column;gap:6px;">`
                  + labels.map((l, i) => {
@@ -4951,7 +5000,7 @@ function commitImport(slotIdx) {
     if (!data) { hideModal(); return; }
     const decks = getSavedDecks();
     const occupied = !!decks[slotIdx];
-    const importName = (data.name || 'Deck').toString().slice(0, 24);
+    const importName = (data.name || 'Deck').toString().slice(0, 6);
     // M10/Polish: refuse to create a second slot with the same name. The modal STAYS
     //   open — we show the message inline so the user can pick a different slot
     //   without losing the option list.
@@ -4975,7 +5024,9 @@ function commitImport(slotIdx) {
                 cards: Array.isArray(c && c.cards) ? [...c.cards] : []
             })),
             players:   Array.isArray(data.players)   ? [...data.players]   : [],
-            nicknames: Array.isArray(data.nicknames) ? [...data.nicknames] : []
+            nicknames: Array.isArray(data.nicknames) ? [...data.nicknames] : [],
+            mutedCategoryIdxs: [...(data.mutedCategoryIdxs || [])],
+            mutedCards:        [...(data.mutedCards || [])]
         };
         decks[slotIdx] = newDeck;
         setSavedDecks(decks);
@@ -5304,7 +5355,7 @@ function onStructureChanged() {
         if (!cellState[card]) {
             cellState[card] = {};
             for (let i = 0; i < MAX_PLAYERS; i++)
-                cellState[card][i] = { check:false, cross:false, asked:false, showed:false, shownToMe:false, meShowedTo:'', iShowedMe:false };
+                cellState[card][i] = { check:false, cross:false, asked:false, showed:false, shownToMe:false, iShowedMe:false };
         }
     });
     buildTable();
@@ -5312,6 +5363,201 @@ function onStructureChanged() {
     renderInfoBar();
     autoSave();
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// F1: OPTIONAL DEDUCTION RULES — SELF-CONTAINED MODULE
+//   Read-only and decoration-only: never writes a mark, never touches
+//   game data. Deleting this whole block (plus the "?" header button
+//   and the #helpersPanel div) removes the feature without affecting
+//   default play — the two guarded calls in toggleGuide/toggleRules
+//   become no-ops.
+// ═══════════════════════════════════════════════════════════════════
+
+// Panel toggle — mirrors toggleRules(); the three header panels are
+// mutually exclusive (they share the Log column's space).
+function toggleHelpers() {
+    const g = document.getElementById('guidePanel');
+    const r = document.getElementById('rulesPanel');
+    const h = document.getElementById('helpersPanel');
+    const wasOpen = h.classList.contains('visible');
+    g.classList.remove('visible');
+    r.classList.remove('visible');
+    document.getElementById('btnGuide')?.classList.remove('active');
+    document.getElementById('btnRules')?.classList.remove('active');
+    if (wasOpen) {
+        h.classList.remove('visible');
+        document.getElementById('btnHelpers')?.classList.remove('active');
+    } else {
+        h.classList.add('visible');
+        document.getElementById('btnHelpers')?.classList.add('active');
+    }
+}
+
+// Called (guarded) by toggleGuide/toggleRules so the panels stay
+// mutually exclusive.
+function closeHelpersPanel() {
+    document.getElementById('helpersPanel')?.classList.remove('visible');
+    document.getElementById('btnHelpers')?.classList.remove('active');
+}
+
+// ── Saved choices — the feature's own localStorage key (theme-key
+//    pattern). Both options start OFF; bad/missing data keeps defaults.
+const OPTRULES_KEY = 'mtr_optrules_v1';
+let optRules = { yesTint: false, noTint: false };
+try {
+    const saved = JSON.parse(localStorage.getItem(OPTRULES_KEY));
+    if (saved && typeof saved === 'object') {
+        optRules.yesTint = !!saved.yesTint;
+        optRules.noTint  = !!saved.noTint;
+    }
+} catch (e) { /* keep defaults */ }
+
+function saveOptRules() {
+    try { localStorage.setItem(OPTRULES_KEY, JSON.stringify(optRules)); } catch (e) {}
+}
+
+// ── Checklist — the module draws its own checkboxes into the panel.
+function buildOptRulesChecklist() {
+    const body = document.getElementById('helpersBody');
+    if (!body) return;
+    body.innerHTML = '';
+    const intro = document.createElement('p');
+    intro.textContent = 'Optional helpers. Each one only colors the board — none of them ever places a mark.';
+    body.appendChild(intro);
+    addOptRuleCheckbox(body, 'yesTint',
+        'Green tint on cards that must be part of the answer.');
+    addOptRuleCheckbox(body, 'noTint',
+        'Red tint on cards that are ruled out — someone holds them, or they are on the board.');
+}
+
+function addOptRuleCheckbox(parent, prefKey, labelText) {
+    const label = document.createElement('label');
+    label.style.cssText = 'display:flex;align-items:flex-start;gap:8px;margin:0 0 10px;cursor:pointer;';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = optRules[prefKey];
+    cb.style.cssText = 'margin-top:3px;cursor:pointer;';
+    cb.onchange = () => {
+        optRules[prefKey] = cb.checked;
+        saveOptRules();
+        refreshOptRuleTints();   // takes effect immediately, setup or play
+    };
+    const span = document.createElement('span');
+    span.textContent = labelText;
+    label.appendChild(cb);
+    label.appendChild(span);
+    parent.appendChild(label);
+}
+
+// ── Tint rendering — decoration only. Paints the card-name cell's
+//    background; never touches marks or game data. Play phase only.
+//    Green asks the engine's isSolutionCandidate() live at paint time
+//    (not the stored set), so it can never show a stale answer.
+function optRuleTintFor(card) {
+    if (gamePhase !== 'play' || turnOrder.length === 0) return '';
+    if (!isRowActive(card)) return '';   // muted rows stay plain
+    if (optRules.yesTint && isSolutionCandidate(card))
+        return 'color-mix(in srgb, var(--mark-check-fg) 25%, var(--row-th-bg))';
+    if (optRules.noTint && isCardRuledOut(card))
+        return 'color-mix(in srgb, var(--mark-cross-fg) 25%, var(--row-th-bg))';
+    return '';
+}
+
+// Red's test: the card is known out of the answer — some player is
+// confirmed holding it (✓ or ✓*), or it's room-checked onto the board.
+function isCardRuledOut(card) {
+    if (roomChecked.has(card)) return true;
+    for (let c = 0; c < MAX_PLAYERS; c++) {
+        const s = cellState[card] && cellState[card][c];
+        if (s && (s.check || s.shownToMe)) return true;
+    }
+    return false;
+}
+
+function applyOptRuleTint(card) {
+    const th = document.querySelector(`tbody tr th[data-card="${CSS.escape(card)}"]`);
+    if (th) th.style.background = optRuleTintFor(card);
+}
+
+function refreshOptRuleTints() {
+    ALL_CARDS.forEach(applyOptRuleTint);
+}
+
+// ── Hooks — wrapped from inside the module so engine code is never
+//    edited. Every repaint of a cell or Room cell (marks, undo, loads,
+//    Start Game, full redraws) also refreshes that card's tint.
+const _f1_renderCell = renderCell;
+renderCell = function(card, col) {
+    _f1_renderCell(card, col);
+    applyOptRuleTint(card);
+};
+const _f1_renderRoomCell = renderRoomCell;
+renderRoomCell = function(card) {
+    _f1_renderRoomCell(card);
+    applyOptRuleTint(card);
+};
+
+// Draw the checklist once at load (script runs after the panel exists).
+buildOptRulesChecklist();
+
+// ── F2 · "Why?" tooltip — right-click a card NAME in Play to see
+//    why it's tinted. Pure message: it dismisses itself after 5
+//    seconds; any click clears it early. Read-only — the answer is
+//    recomputed live at click time, never read from the stored
+//    solutionCards set (that set can go stale after an Undo).
+let _whyTipEl = null, _whyTipTimer = null;
+
+function hideWhyTip() {
+    if (_whyTipTimer) { clearTimeout(_whyTipTimer); _whyTipTimer = null; }
+    if (_whyTipEl) { _whyTipEl.remove(); _whyTipEl = null; }
+}
+
+// The explanation, recomputed fresh. Empty string = no tip
+// (card untinted, or that tint's checkbox is off).
+function whyTextFor(card) {
+    if (optRules.yesTint && isSolutionCandidate(card))
+        return 'Must be part of the answer — every player has ✗ on this row.';
+    if (optRules.noTint && isCardRuledOut(card)) {
+        if (roomChecked.has(card)) return 'Ruled out — it’s on the board.';
+        for (let c = 0; c < MAX_PLAYERS; c++) {
+            const s = cellState[card] && cellState[card][c];
+            if (s && (s.check || s.shownToMe)) {
+                const name = getPlayerNames()[c] || ('Player ' + (c + 1));
+                return 'Ruled out — ' + name + ' holds this card.';
+            }
+        }
+    }
+    return '';
+}
+
+function showWhyTip(x, y, text) {
+    hideWhyTip();
+    const el = document.createElement('div');
+    el.className = 'ctx-menu open';          // same dark box as the menus
+    el.style.cssText = 'padding:6px 12px; max-width:260px; min-width:0;';
+    el.textContent = text;
+    document.body.appendChild(el);
+    // Clamp inside the window, like the menu does.
+    el.style.left = Math.min(x + 10, window.innerWidth  - el.offsetWidth  - 8) + 'px';
+    el.style.top  = Math.min(y + 10, window.innerHeight - el.offsetHeight - 8) + 'px';
+    _whyTipEl = el;
+    _whyTipTimer = setTimeout(hideWhyTip, 5000);
+}
+
+// Hook — document-level, so no engine code is edited. The card-name
+// right-click is free in Play (the Setup menu handler exits early),
+// and the app-wide handler already suppresses the browser menu.
+document.addEventListener('contextmenu', e => {
+    hideWhyTip();                            // a new right-click clears an old tip
+    if (gamePhase !== 'play' || turnOrder.length === 0) return;
+    const th = e.target.closest('tbody tr[data-card] > th[data-card]');
+    if (!th) return;
+    const card = th.dataset.card;
+    if (!isRowActive(card)) return;          // muted rows stay silent
+    const text = whyTextFor(card);
+    if (text) showWhyTip(e.clientX, e.clientY, text);
+});
+document.addEventListener('click', hideWhyTip);
 </script>
 </body>
 </html>
