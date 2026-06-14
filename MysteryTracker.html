@@ -251,7 +251,7 @@
         }
         .card-name-input:focus { border-bottom-color:var(--gold); background:var(--active-turn-bg); }
         /* M10/01: locked inputs (wrong setup step) — dim and not-allowed */
-        .card-name-input:disabled, .cat-name-input:disabled { opacity:0.55; cursor:not-allowed; border-bottom-style:dotted; }
+        .card-name-input:disabled, .cat-name-input:disabled { opacity:0.55; cursor:not-allowed; border-bottom-style:dotted; pointer-events:none; }
         tbody tr td { text-align:center; padding:1px 2px; border:1px solid var(--border-lt); width:60px; min-width:60px; max-width:60px; height:22px; cursor:pointer; font-size:0.88rem; transition:background 0.1s; user-select:none; }
         tbody tr td:hover { background:var(--row-hover-bg) !important; }
         tbody tr:nth-child(even) td { background:var(--row-alt-bg); }
@@ -655,9 +655,9 @@
         .modal-player-btn.selected { background:var(--gold-dk); color:var(--on-gold-dk); border-color:var(--gold-dk); }
         .modal-player-btn.muted-player { opacity:0.45; cursor:not-allowed; }
 
-        /* ── M10/04: NICKNAME INPUT (was M4 card-count). 4-char text, sits inline next
-              to the player name as "Scarlett (Pat)". Card-count logic was retired —
-              the slot now holds a short nickname. */
+        /* ── F4: CARD-COUNT INPUT (the original M4 design, restored). 1-2 digits,
+              sits inline next to the player name as "Pat (5)". The name box holds
+              the person playing; the parentheses hold how many cards they were dealt. */
         thead th .header-inner {
             display:flex; align-items:center; justify-content:center; gap:4px;
         }
@@ -674,7 +674,7 @@
             font-style:italic; opacity:0.9;
             /* M11/21: pin width to match the cc input it replaces in Play, so
                player columns keep the same geometry when crossing Setup → Play.
-               Without this, a short nickname (or missing one showing '?') would
+               Without this, a short count (or a missing one showing '?') would
                shrink the column and let the Card column absorb the slack. */
             min-width:44px; text-align:center; box-sizing:border-box;
         }
@@ -684,14 +684,12 @@
         /* ── M11/01: M4 per-cell mini-notes removed. Right-click on a player×card
               cell is now the manual mark cycle (blank → ✗ → ✓ → return-to-auto). ── */
 
-        /* ── M4: SUMMARY COLUMN (∑) — manual ✕ / ★ marks (vibrant red X, vibrant green star) ── */
+        /* ── M4: SUMMARY COLUMN (∑) — manual ✕ / ✓ marks (vibrant red X, green check) ── */
         td.sum-col { cursor:pointer; }
         .sum-x   { color:var(--sum-x-fg); font-size:1rem; font-weight:700; line-height:1; }
-        /* Green dot — a pure CSS shape (not a text glyph), so it centers cleanly in the cell
-           with no baseline issues and no impact on row height. */
-        .sum-star{ display:inline-block; vertical-align:middle;
-                   width:14px; height:14px; border-radius:50%;
-                   background:var(--sum-dot-fg); }
+        /* Green ✓ — the envelope-holds check; same green/weight as the player and 🏠 checks. */
+        .sum-check{ color:var(--mark-check-fg); font-size:1rem; font-weight:700;
+                    line-height:1; vertical-align:middle; }
         td.sum-col { text-align:center; vertical-align:middle; }
 
         /* Player-out badge (👋) in the column header */
@@ -844,14 +842,14 @@
                 <thead>
                     <tr id="headerRow">
                         <th>Card</th>
-                        <th class="sum-col" title="Summary — click a card's ∑ cell to cycle a marker: ✕ (held by a known player) → ★ (could be the secret answer) → blank. Play mode only.">∑</th>
+                        <th class="sum-col" title="Summary — click a card's ∑ cell to cycle a marker: ✕ (held by a known player) → ✓ (the envelope holds it) → blank. Play mode only.">∑</th>
                         <th class="room-col" title="Room — for the 2-player variant where cards lie face-down on the board. Click to mark a card you've seen in a room (it can't be the secret, and no player holds it).">🏠</th>
-                        <th id="th0"><div class="header-inner"><input class="ph" id="p1h" type="text" placeholder="Player 1" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p1c" type="text" maxlength="4" placeholder="?" spellcheck="false" oninput="onNicknameChange(0)"><span class="cc-display" id="p1cd"></span><span>)</span><span class="player-out-badge" title="Player is out"></span></div></th>
-                        <th id="th1"><div class="header-inner"><input class="ph" id="p2h" type="text" placeholder="Player 2" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p2c" type="text" maxlength="4" placeholder="?" spellcheck="false" oninput="onNicknameChange(1)"><span class="cc-display" id="p2cd"></span><span>)</span><span class="player-out-badge" title="Player is out"></span></div></th>
-                        <th id="th2"><div class="header-inner"><input class="ph" id="p3h" type="text" placeholder="Player 3" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p3c" type="text" maxlength="4" placeholder="?" spellcheck="false" oninput="onNicknameChange(2)"><span class="cc-display" id="p3cd"></span><span>)</span><span class="player-out-badge" title="Player is out"></span></div></th>
-                        <th id="th3"><div class="header-inner"><input class="ph" id="p4h" type="text" placeholder="Player 4" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p4c" type="text" maxlength="4" placeholder="?" spellcheck="false" oninput="onNicknameChange(3)"><span class="cc-display" id="p4cd"></span><span>)</span><span class="player-out-badge" title="Player is out"></span></div></th>
-                        <th id="th4"><div class="header-inner"><input class="ph" id="p5h" type="text" placeholder="Player 5" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p5c" type="text" maxlength="4" placeholder="?" spellcheck="false" oninput="onNicknameChange(4)"><span class="cc-display" id="p5cd"></span><span>)</span><span class="player-out-badge" title="Player is out"></span></div></th>
-                        <th id="th5"><div class="header-inner"><input class="ph" id="p6h" type="text" placeholder="Player 6" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p6c" type="text" maxlength="4" placeholder="?" spellcheck="false" oninput="onNicknameChange(5)"><span class="cc-display" id="p6cd"></span><span>)</span><span class="player-out-badge" title="Player is out"></span></div></th>
+                        <th id="th0"><div class="header-inner"><input class="ph" id="p1h" type="text" placeholder="Player 1" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p1c" type="text" maxlength="2" placeholder="?" spellcheck="false" inputmode="numeric" oninput="onCardCountChange(0)"><span class="cc-display" id="p1cd"></span><span>)</span><span class="player-out-badge" title="Player is out"></span></div></th>
+                        <th id="th1"><div class="header-inner"><input class="ph" id="p2h" type="text" placeholder="Player 2" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p2c" type="text" maxlength="2" placeholder="?" spellcheck="false" inputmode="numeric" oninput="onCardCountChange(1)"><span class="cc-display" id="p2cd"></span><span>)</span><span class="player-out-badge" title="Player is out"></span></div></th>
+                        <th id="th2"><div class="header-inner"><input class="ph" id="p3h" type="text" placeholder="Player 3" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p3c" type="text" maxlength="2" placeholder="?" spellcheck="false" inputmode="numeric" oninput="onCardCountChange(2)"><span class="cc-display" id="p3cd"></span><span>)</span><span class="player-out-badge" title="Player is out"></span></div></th>
+                        <th id="th3"><div class="header-inner"><input class="ph" id="p4h" type="text" placeholder="Player 4" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p4c" type="text" maxlength="2" placeholder="?" spellcheck="false" inputmode="numeric" oninput="onCardCountChange(3)"><span class="cc-display" id="p4cd"></span><span>)</span><span class="player-out-badge" title="Player is out"></span></div></th>
+                        <th id="th4"><div class="header-inner"><input class="ph" id="p5h" type="text" placeholder="Player 5" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p5c" type="text" maxlength="2" placeholder="?" spellcheck="false" inputmode="numeric" oninput="onCardCountChange(4)"><span class="cc-display" id="p5cd"></span><span>)</span><span class="player-out-badge" title="Player is out"></span></div></th>
+                        <th id="th5"><div class="header-inner"><input class="ph" id="p6h" type="text" placeholder="Player 6" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p6c" type="text" maxlength="2" placeholder="?" spellcheck="false" inputmode="numeric" oninput="onCardCountChange(5)"><span class="cc-display" id="p6cd"></span><span>)</span><span class="player-out-badge" title="Player is out"></span></div></th>
                     </tr>
                 </thead>
                 <tbody id="cardBody"></tbody>
@@ -892,10 +890,10 @@
                 placeholder="Paste this game's rules here. Autosaved per deck slot."></textarea>
         </div>
 
-        <!-- F1: Optional-rules panel — placeholder name "?", Patrick to rename later. -->
+        <!-- F1: Deductions panel — the "?" header button (btnHelpers) opens it. -->
         <div class="overlay-panel" id="helpersPanel">
             <div class="overlay-head">
-                <span>? Optional Rules</span>
+                <span>❓ Deductions</span>
                 <button class="overlay-close" onclick="toggleHelpers()">Close</button>
             </div>
             <div class="overlay-body" id="helpersBody">
@@ -1418,7 +1416,7 @@ function buildTable() {
             th.addEventListener('contextmenu', e => onContextMenu(e, { kind:'card', catIdx, cardIdxInCat, card }));
             row.appendChild(th);
 
-            // Summary cell (∑) — M4 manual marking: click to cycle blank → ✕ → ★ → blank
+            // Summary cell (∑) — M4 manual marking: click to cycle blank → ✕ → ✓ → blank
             const sumTd = document.createElement('td');
             sumTd.className = 'sum-col';
             sumTd.dataset.card = card;
@@ -1727,9 +1725,9 @@ function renderSummaryCell(card) {
     if (mark === 'x') {
         const sp = document.createElement('span'); sp.className = 'sum-x'; sp.textContent = '✕';
         sp.title = 'Held by a known player'; inner.appendChild(sp);
-    } else if (mark === 'star') {
-        const sp = document.createElement('span'); sp.className = 'sum-star';
-        sp.title = 'Possible solution card'; inner.appendChild(sp);
+    } else if (mark === 'check') {
+        const sp = document.createElement('span'); sp.className = 'sum-check'; sp.textContent = '✓';
+        sp.title = 'The envelope holds this card'; inner.appendChild(sp);
     }
 }
 
@@ -1930,7 +1928,119 @@ function applyBlankColLock() {
 
     // M11/09 REVERTED — spacious mode dropped. Hide-mode still controls the
     //   column / row hiding above; just no font/height bump anymore.
+
+    // M11/21: re-fit the page now that the visible rows/columns are settled
+    //   (this is the common end-point of every grid refresh, incl. the Step-5
+    //   mute hide and the Play-phase column hide).
+    requestFit();
 }
+
+// ── M11/21: AUTO-FIT ──────────────────────────────────────────────────
+// Size the whole page to the window by computing --ui-zoom rather than
+// hard-coding it. We pick the largest zoom that still keeps the grid AND the
+// fixed right-hand panel fully on screen — top-to-bottom and side-to-side —
+// so more players size down to fit and fewer players size up to fill, all in
+// proportion. Natural sizes are measured at zoom 1 because Firefox's CSS zoom
+// makes offset/rect reads unreliable at other zooms (the item-19 lesson).
+//
+// The top bars (header, phase bar, Game Deck bar) get TALLER when squeezed
+// narrow — their buttons wrap to a second line — which would push the grid
+// into a scroll. So the width budget also caps the zoom so those bars always
+// stay on one line; chrome height then stays put and the grid always fits.
+//
+// requestFit() coalesces the many refresh calls in one user action into a
+// single fit on the next frame, after the DOM has settled.
+let _fitPending = false;
+function requestFit() {
+    if (_fitPending) return;
+    _fitPending = true;
+    requestAnimationFrame(() => { _fitPending = false; fitToWindow(); });
+}
+
+// One-line width of a bar: force no-wrap, read the content width, restore.
+function _noWrapWidth(el) {
+    if (!el || el.offsetParent === null) return 0;   // missing or hidden
+    const pWS = el.style.whiteSpace, pFW = el.style.flexWrap;
+    el.style.whiteSpace = 'nowrap';
+    el.style.flexWrap   = 'nowrap';
+    const w = el.scrollWidth;
+    el.style.whiteSpace = pWS;
+    el.style.flexWrap   = pFW;
+    return w;
+}
+
+function fitToWindow() {
+    const root  = document.documentElement;
+    const table = document.getElementById('clueTable');
+    const wrap  = document.querySelector('.table-wrap');
+    if (!table || !wrap) return;
+
+    // Measure at zoom 1 (true CSS pixels). Done synchronously so the
+    // intermediate state never paints — no flash.
+    root.style.setProperty('--ui-zoom', '1');
+    // Clear any prior fill heights so we measure the grid's NATURAL size.
+    table.querySelectorAll('tbody tr').forEach(r => { r.style.height = ''; });
+
+    // Natural grid width: let the table shrink to its content, read, restore.
+    const prevW = table.style.width;
+    table.style.width = 'max-content';
+    const natTableW = table.offsetWidth;
+    table.style.width = prevW;
+
+    const winW = window.innerWidth, winH = window.innerHeight;
+
+    // Available vs needed, measured at zoom 1. This folds in the header, bars,
+    // every border/padding and the right-panel width automatically — no
+    // by-hand tally — so the fit lands without leaving a stray scrollbar.
+    //   available = the visible window the grid sits in (the .table-wrap box)
+    //   needed    = the grid's full natural size
+    // At zoom z the window CSS-size becomes win/z while the grid stays fixed,
+    // so the exact-fit zoom is win / (win + needed − available).
+    const availH = wrap.clientHeight;
+    const needH  = table.offsetHeight;
+    const availW = wrap.clientWidth;
+    const needW  = natTableW;
+
+    const zHeight = winH / (winH + needH - availH);
+    const zWidth  = winW / (winW + needW - availW);
+
+    // Capture the card rows and their NATURAL heights now (still at zoom 1, so
+    // the reads are reliable) — used below to fill any leftover vertical space.
+    // Header and category banners are excluded so only the card rows grow.
+    const cardRows  = [...table.querySelectorAll('tbody tr')]
+        .filter(r => !r.classList.contains('cat-row') && r.offsetParent !== null);
+    const cardNatH  = cardRows.map(r => r.getBoundingClientRect().height);
+
+    // Keep the top bars on ONE line — a wrapped bar grows taller and would push
+    // the grid into a scroll, breaking the height fit.
+    const PAD_X = 16;
+    const barsW = Math.max(
+        _noWrapWidth(document.querySelector('.page-header')),
+        _noWrapWidth(document.getElementById('setupBanner')),
+        _noWrapWidth(document.getElementById('deckBar'))
+    ) + PAD_X;
+    const zBars = barsW > PAD_X ? winW / barsW : Infinity;
+
+    const zRaw   = Math.min(zHeight, zWidth, zBars);
+    // Loose safety guard only — does NOT constrain normal use (the user sets
+    // their own comfort with browser zoom); just stops a pathological extreme.
+    const capped = Math.min(zRaw, 1.6);             // what limits the grid size
+    const z = Math.max(0.6, capped * 0.99);         // hairline safety
+    root.style.setProperty('--ui-zoom', String(z));
+
+    // Fill leftover vertical space. When something OTHER than height limited the
+    // size (width, the bars, or the cap), the grid is shorter than the window.
+    // Spread the surplus across the CARD rows only so the grid reaches the
+    // bottom — no dead band — while the header and banners stay their natural
+    // height. Surplus at zoom z, from the zoom-1 measurements:
+    //   (winH/z − winH) + (availH − needH)
+    const surplus = (winH / z - winH) + (availH - needH);
+    if (surplus > 4 && cardRows.length) {
+        const add = (surplus * 0.98) / cardRows.length;   // 0.98 avoids a scrollbar
+        cardRows.forEach((r, i) => { r.style.height = (cardNatH[i] + add) + 'px'; });
+    }
+}
+window.addEventListener('resize', requestFit);
 
 function applyActiveTurnStyling() {
     document.querySelectorAll('td.active-turn').forEach(td => td.classList.remove('active-turn'));
@@ -2083,7 +2193,14 @@ function onNameChange() {
 }
 function startGame() {
     const mc = findMeCol();
-    if (mc < 0) { showStatus('In Step 5, right-click your suspect column → "I am this suspect" first.', 'var(--red-lt)'); return; }
+    if (mc < 0) { showStatus('In Step 5, right-click your own player column to pick yourself as Me first.', 'var(--red-lt)'); return; }
+    if (!meCardClicksOk(mc)) {
+        const n = playerCardCounts[mc];
+        showStatus((typeof n === 'number')
+            ? `Click your cards in the Me column first — your card count is ${n}.`
+            : 'Click your cards in the Me column first (at least 2).', 'var(--red-lt)');
+        return;
+    }
     const order = buildTurnOrder();
     if (order.length < 2) { showStatus('Enter at least 2 player names.', 'var(--red-lt)'); return; }
 
@@ -2202,7 +2319,7 @@ function onCellClick(e) {
 
     // ── SETUP: only Me column, toggle ✓ ──
     if (gamePhase === 'setup') {
-        if (meCol < 0) { showStatus('In Step 5, right-click your suspect column → "I am this suspect" first.', 'var(--red-lt)'); return; }
+        if (meCol < 0) { showStatus('In Step 5, right-click your own player column to pick yourself as Me first.', 'var(--red-lt)'); return; }
         if (col !== meCol) { showStatus('During setup, only your "Me" column can be marked.', 'var(--red-lt)'); return; }
         const s = cellState[card][col];
         if (s.check) {
@@ -2210,10 +2327,18 @@ function onCellClick(e) {
             s.marks = (s.marks || []).filter(m => m.type !== 'check');
             recomputeCellBooleans(card, col);
         } else {
+            // Me's clicks can't exceed the typed card count (unclicking is
+            // free; no count typed = no ceiling).
+            const cc = playerCardCounts[col];
+            if (typeof cc === 'number' && meSetupCheckCount(col) >= cc) {
+                showStatus(`Your card count is ${cc} — unclick a card first.`, 'var(--red-lt)');
+                return;
+            }
             markCell(card, col, 'check');
         }
         renderCell(card, col);
         updateUndoButton();
+        updateButtonStates();   // Start Game gate tracks Me's click count live
         autoSave(); return;
     }
 
@@ -3247,15 +3372,15 @@ function getSnapshot() {
              categories: CATEGORIES.map(c => ({ name:c.name, cards:[...c.cards] })),
              mutedCategoryIdxs: [...mutedCategoryIdxs],
              mutedCards: [...mutedCards],
-             // M10/04: nicknames (was cardCounts) + player-out state + summary marks.
+             // F4: card counts (numbers; null = not entered) + player-out state + summary marks.
              // M11/01: cellNotes removed (mini-notes feature retired).
              // M11/03: roomChecked — 2-player variant face-down-card tracker.
-             playerNicknames: [...playerNicknames],
+             playerCardCounts: [...playerCardCounts],
              playerOutKind: { ...playerOutKind },
              summaryMarks: { ...summaryMarks },
              roomChecked: [...roomChecked],
              setupStep,
-             schemaVersion: 6 };
+             schemaVersion: 7 };
 }
 
 function applySnapshot(d) {
@@ -3275,13 +3400,15 @@ function applySnapshot(d) {
     // Restore muted state (default to none if absent)
     mutedCategoryIdxs = new Set(Array.isArray(d.mutedCategoryIdxs) ? d.mutedCategoryIdxs : []);
     mutedCards        = new Set(Array.isArray(d.mutedCards)        ? d.mutedCards        : []);
-    // M10/04: nicknames (was cardCounts) + player-out state + summary marks
+    // F4: card counts + player-out state + summary marks
     // (M11/01: cell notes removed)
-    if (Array.isArray(d.playerNicknames) && d.playerNicknames.length === MAX_PLAYERS) {
-        playerNicknames = d.playerNicknames.map(v => (typeof v === 'string' ? v.slice(0, 4) : ''));
+    if (Array.isArray(d.playerCardCounts) && d.playerCardCounts.length === MAX_PLAYERS) {
+        playerCardCounts = d.playerCardCounts.map(v =>
+            (typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 99) ? v : null);
     } else {
-        // Old saves had cardCounts as numbers — discard them (counts are retired).
-        playerNicknames = Array(MAX_PLAYERS).fill('');
+        // Older saves carried text nicknames in this slot — discard them
+        // (nicknames are retired; the count shows '?' until typed).
+        playerCardCounts = Array(MAX_PLAYERS).fill(null);
     }
     // M10/05: restore Out kinds. Old saves had mutedPlayers as an array of column
     //         indices (all treated as 'quit' for backwards compat).
@@ -3302,12 +3429,12 @@ function applySnapshot(d) {
     // M11/03: restore room-checked set (older saves get an empty set).
     roomChecked  = new Set(Array.isArray(d.roomChecked) ? d.roomChecked : []);
     setupStep    = (typeof d.setupStep === 'number') ? Math.max(1, Math.min(5, d.setupStep)) : 1;
-    // Reflect nicknames into the inputs
+    // Reflect card counts into the inputs
     for (let col = 0; col < MAX_PLAYERS; col++) {
         const ce = document.getElementById('p'+(col+1)+'c');
-        if (ce) ce.value = playerNicknames[col] || '';
+        if (ce) ce.value = (playerCardCounts[col] === null) ? '' : String(playerCardCounts[col]);
     }
-    refreshNicknameDisplays();
+    refreshCardCountDisplays();
     rebuildAllCards();
     buildTable(); // rebuild with restored names
 
@@ -3365,7 +3492,7 @@ function newGame() {
     // Two two-tap buttons; right-to-left layout puts "Same Players" on the right as the primary.
     showModal({
         title: 'Start a new game?',
-        bodyHTML: 'Keep the current player names and nicknames, or start with everything blank?',
+        bodyHTML: 'Keep the current player names and card counts, or start with everything blank?',
         buttons: [
             { label: 'Cancel', action: () => hideModal() },
             { label: 'New Players',  danger: true, confirmTwoTap: true,
@@ -3378,17 +3505,17 @@ function newGame() {
 function _doNewGame(opts) {
     opts = opts || {};
     const keepPlayers = !!opts.keepPlayers;
-    // M10/04: Snapshot player names + nicknames if we're keeping them.
+    // F4: Snapshot player names + card counts if we're keeping them.
     // M10/05-fix3: Me is session state, NOT carry-forward state — same rule as
-    //   Save/Load Deck. Replace the "Me" header text with the original suspect
+    //   Save/Load Deck. Replace the "Me" header text with the original header
     //   name so each new game starts with you picking Me again in Step 5.
-    let keptNames = null, keptNicks = null;
+    let keptNames = null, keptCounts = null;
     if (keepPlayers) {
         keptNames = getHeaderNames();
         if (meCol >= 0 && meCol < keptNames.length && meOriginalName) {
             keptNames[meCol] = meOriginalName;
         }
-        keptNicks = [...playerNicknames];
+        keptCounts = [...playerCardCounts];
     }
     localStorage.removeItem('clueTrackerV6');
     CATEGORIES = defaultCategories();
@@ -3409,23 +3536,23 @@ function _doNewGame(opts) {
         // M10/05-fix3: New Game clears Me. User re-picks it in Step 5.
         meCol = -1;
         meOriginalName = '';
-        playerNicknames = keptNicks;
+        playerCardCounts = keptCounts;
     } else {
         for(let i=1;i<=6;i++){ const el=document.getElementById('p'+i+'h'); if(el){ el.value=''; } }
-        playerNicknames = Array(MAX_PLAYERS).fill('');
+        playerCardCounts = Array(MAX_PLAYERS).fill(null);
         meCol = -1;
     }
     for(let i=1;i<=MAX_PLAYERS;i++){ const el=document.getElementById('p'+i+'h'); if(el) el.disabled=false; }
     for(let i=1;i<=MAX_PLAYERS;i++){
         const elC=document.getElementById('p'+i+'c');
-        if(elC){ elC.value = playerNicknames[i-1] || ''; elC.disabled=false; }
+        if(elC){ elC.value = (playerCardCounts[i-1] === null) ? '' : String(playerCardCounts[i-1]); elC.disabled=false; }
     }
     playerOutKind = {};
     // M11/01: cellNotes removed (mini-notes feature retired).
     summaryMarks = {};
     roomChecked = new Set();   // M11/03: clear room marks on full reset
     roomCycleSnapshot = {}; roomUndoLists = {};  // M11/04: clear room cycle state
-    refreshNicknameDisplays();
+    refreshCardCountDisplays();
     for(let c=0;c<MAX_PLAYERS;c++){ const th=document.getElementById('th'+c); if(th){ th.classList.remove('me-col'); th.classList.remove('in-play'); th.classList.remove('player-out'); th.classList.remove('player-wrongacc'); } }
     clearPending();
     /* M11/06: Notes panel removed; no textarea to clear. */
@@ -3507,8 +3634,8 @@ function showDeckStatus(msg, color) {
 
 // M5+: Dynamic Phase Bar text — separate prefix + directive
 // Per-turn directive ("Eve is guessing" / "Eve is waiting" / "Bob showed") lives in the
-// page header (#headerDirective) at 1.2rem. Phase Bar carries turn info, wizard steps,
-// "click Next →", "{name}'s turn", and status messages.
+// Directives Bar (#deckBarDirective — the Deck Bar repurposed during Play). Phase Bar
+// carries turn info, wizard steps, "{name}'s turn", and status messages.
 function updatePhaseBarText() {
     const pre   = document.getElementById('phasePrefix');
     const dir   = document.getElementById('phaseDirective');
@@ -3527,7 +3654,7 @@ function updatePhaseBarText() {
         } else if (setupStep === 3) {
             dir.innerHTML = '— Step 3: Change the name of any card. Right-click to mute.';
         } else if (setupStep === 4) {
-            dir.innerHTML = '— Step 4: Enter suspect and player nicknames.';
+            dir.innerHTML = '— Step 4: Enter player names and card counts.';
         } else {
             dir.innerHTML = '— Step 5: Right-click your column header. Click your cards.';
         }
@@ -3640,14 +3767,36 @@ function updateButtonStates() {
     }
     updateTabIndexes();
     if (btnStart) {
-        // Only on Step 5, with Me set and at least one card checked (or even none — let it start).
+        // Only on Step 5, with Me set and Me's cards clicked: exactly the
+        // typed card count, or at least 2 when no count is typed (guards
+        // against starting before marking your hand).
         if (inPlay) {
             btnStart.disabled = true;
         } else {
             const me = findMeCol();
-            btnStart.disabled = (setupStep < 5) || (me < 0);
+            btnStart.disabled = (setupStep < 5) || (me < 0) || !meCardClicksOk(me);
         }
     }
+}
+
+// Me's setup ✓s on active rows.
+function meSetupCheckCount(me) {
+    let checks = 0;
+    for (const card of ALL_CARDS) {
+        if (!isRowActive(card)) continue;
+        const s = cellState[card] && cellState[card][me];
+        if (s && s.check) checks++;
+    }
+    return checks;
+}
+
+// Me's setup ✓s vs Me's card count: equal when a count is typed,
+// at least 2 when it isn't.
+function meCardClicksOk(me) {
+    if (me < 0) return false;
+    const checks = meSetupCheckCount(me);
+    const n = playerCardCounts[me];
+    return (typeof n === 'number') ? (checks === n) : (checks >= 2);
 }
 
 /* M11/06: notesArea input listener removed with the Notes panel. */
@@ -3700,6 +3849,8 @@ window.addEventListener('load', () => {
     setGuideContent();
     // M7: set the dark-mode button icon based on the current theme.
     updateDarkModeButtonIcon();
+    // M11/21: final fit once the restored game / deck is fully on screen.
+    requestFit();
 });
 
 // Stub placeholders for Guide / Rules / Dark Mode — wired up in M6 / M7
@@ -3781,7 +3932,7 @@ function setGuideContent() {
         <p>This Mystery Tracker unburdens the user playing deduction style games by auto-filling the many boxes on an expansive scoresheet for tracking all the clues.</p>
         <p>As the game unfolds, you record who asked about which cards, who showed, and who passed. The app keeps that history tidy and out of your head, so you can focus on the deductions.</p>
         <p>One thing it does <em>not</em> do is figure out the answer for you. It records observations; the conclusions are still yours to draw. That's the design.</p>
-        <p>This app is designed to be used with a variety of game that incorporate up to 4 categories of who, what, where, why, and up to 30 cards for possibilities in deducing the correct answers.</p>
+        <p>This app is designed to be used with a variety of games of up to 4 categories and up to 30 cards. The category and card names can be whatever you want — for example, Who, What, and Where, as in Clue.</p>
 
         <h3>Setting up a new game</h3>
         <p>You walk through five short steps. The Phase Bar at the top tells you that you are in the Setup and which step you're on.</p>
@@ -3789,8 +3940,8 @@ function setGuideContent() {
             <li><strong>Step 1 — Shape the grid.</strong> If the default 9/9/9/3 split is what you need, just tap Next. Otherwise, right-click anywhere across the <strong>category grid-wide banner section</strong> (the colored band that stretches across the player columns, not the narrow category-name cell) to move that banner up or down. Keep adjusting until each category has the right number of cards under it for the game you're playing. Muting happens in later steps — Step 1 is just about getting the rows where you want them. Tap Next when finished.</li>
             <li><strong>Step 2 — Categories.</strong> Type each category name (e.g. Suspects, Weapons, Rooms). Tab moves to the next. If your game uses fewer than four categories, right-click the unused banner and pick <strong>🔇 Mute this category</strong> — its whole row greys out and is ignored from there on. (Right-click again and pick 🔊 Activate to bring it back.) Tap Next when finished.</li>
             <li><strong>Step 3 — Cards.</strong> Type each card name. Tab moves to the next. To leave a card out of the game, right-click it and pick <strong>🔇 Mute this card</strong>. To trim a whole tail (say, Rooms 10-16 when your game has only 9 rooms), right-click the first card you want gone and pick <strong>🔇 Mute this card and all below</strong>. Tap Next when finished.</li>
-            <li><strong>Step 4 — Players (suspects).</strong> Enter the suspect names in the player column headers in board order from left to right. The column order matches the turn order during play. Add any 4-char in parentheses. Tab moves you to the next column. Tap Next when all suspects are seated.</li>
-            <li><strong>Step 5 — Pick "Me" and check your cards.</strong> Right-click on your suspect's column header and choose <strong>"🙋 I am this suspect"</strong> — that column turns green and is now your "Me" column. Then click the boxes in your Me column for each card you're holding. A ✓ will appear in that box. When you are finished, tap ▶ Start Game.</li>
+            <li><strong>Step 4 — Players.</strong> Enter each player's name in the column headers in board order from left to right. The column order matches the turn order during play. In the parentheses, enter how many cards that player was dealt (leave it blank if you don't know — it shows "?"). Tab moves you to the next column. Tap Next when all players are seated.</li>
+            <li><strong>Step 5 — Pick "Me" and check your cards.</strong> Right-click on your own column header and choose <strong>"🙋 I am [your name]"</strong> — that column turns green and is now your "Me" column. Then click the boxes in your Me column for each card you're holding. A ✓ will appear in that box. If you typed your card count back in Step 4, the app won't let you check more cards than that, and the ▶ Start Game button stays greyed out until the number you've checked matches your count. (Left your count blank? Just check at least two.) When you are finished, tap ▶ Start Game.</li>
             <li><strong>Undo —</strong> If at any point you want to go back a step or more, tap Undo.</li>
             <li><strong>Start Game —</strong> After finishing the setup, tap Start Game and the app goes to the Game page.</li>
         </ul>
@@ -3801,7 +3952,7 @@ function setGuideContent() {
             <li><strong>Category banner — Step 1</strong> — move the banner up or down by one row to set the grid shape.</li>
             <li><strong>Category banner — Step 2</strong> — mute or activate that whole category.</li>
             <li><strong>Card name — Step 3</strong> — mute or activate one card, or mass-mute that card and every card below it in the same category.</li>
-            <li><strong>Player header — Step 5</strong> — pick that suspect as your "Me" column.</li>
+            <li><strong>Player header — Step 5</strong> — pick that player as your "Me" column.</li>
             <li><strong>Player header — Play</strong> — mark that player out of the game (quit or wrong accusation).</li>
             <li><strong>Any player cell — Play</strong> — cycle a manual mark on that cell: <strong>blank → ✗ → ✓ → return-to-auto → blank …</strong> Manual marks are treated as facts by the deduction engine (a manual ✓ propagates ✗ across the rest of the row) and are recorded in the Log. Not available on your own Me column.</li>
         </ul>
@@ -3814,7 +3965,7 @@ function setGuideContent() {
         <p>The first player's column is highlighted and ready for the first turn.</p>
 
         <h3>Turn play</h3>
-        <p>Each turn follows the same shape. The page header on the left shows where the turn is at — <em>thinking</em>, <em>guessing</em>, <em>waiting</em>, <em>showed</em> — so you can glance up and orient yourself.</p>
+        <p>Each turn follows the same shape. In the upper left, the Phase Bar shows the turn and the Directive Bar shows the play — <em>thinking</em>, <em>guessing</em>, <em>waiting</em>, <em>showed</em> — and what to do next, so you can glance up and orient yourself.</p>
         <ul>
             <li><strong>Click the asked cards.</strong> When a player makes a guess, click each of the asked cards in the asking player's column. A ? mark drops in.</li>
             <li><strong>Click the shower's column header.</strong> When someone shows, click their player-header. The app records the shown cards with a ! mark on each asked card in their column and drops a ✗ on the card for every player that passed in between — those players couldn't show, so they don't hold any of the asked cards.</li>
@@ -3824,7 +3975,7 @@ function setGuideContent() {
         </ul>
 
         <h3>Reading the marks</h3>
-        <p>Most marks are placed <strong>automatically</strong> as you record asks, shows, and passes. You can also add your own <strong>manual</strong> marks by right-clicking any player×card cell — useful when you've learned something the engine couldn't deduce on its own (a card was accidentally revealed, your own reasoning got there first, etc.). Right-click cycles blank → ✗ → ✓ → return-to-auto. A manual ✓ is treated as fact by the engine and propagates ✗ across the rest of the row.</p>
+        <p>Most marks are placed <strong>automatically</strong> as you record asks, shows, and passes. You can also add your own <strong>manual</strong> marks by right-clicking a cell in the other players' columns — useful when you've learned something the engine couldn't deduce on its own (a card was accidentally revealed, your own reasoning got there first, etc.). Right-click cycles blank → ✗ → ✓ → return-to-auto. A manual ✓ is treated as fact by the engine and propagates ✗ across the rest of the row.</p>
         <ul>
             <li><strong>✓</strong> — this player has this card. Confirmed.</li>
             <li><strong>✗</strong> — this player does <em>not</em> have this card. Confirmed.</li>
@@ -3836,15 +3987,49 @@ function setGuideContent() {
         <p>Once a card carries ✓ or ✗ the app stops adding new ! marks there — the cell's state is already settled, and the ! would just be noise. The ? mark still stacks; it's useful to see who's been chasing that card.</p>
 
         <h3>The Summary column</h3>
-        <p>The narrow ∑ column between the card name and the player columns is yours to mark by hand. Clicking the cell cycles it: blank → red ✕ → green dot → blank. Use ✕ to rule a card out of the solution; use the green dot to flag a card you think <em>is</em> in the solution. The app never writes to this column on its own — it's a scratchpad for your guesses.</p>
+        <p>The narrow ∑ column between the card name and the player columns is the envelope's own column — your summation of what's in the secret answer. Just as a player's column shows what that player holds and the 🏠 column shows what the board holds, the ∑ column shows what you believe the envelope holds. You mark it by hand: clicking a cell cycles blank → red ✕ → green ✓ → blank. A green ✓ means you think the envelope holds that card; a red ✕ means it doesn't, because a player or the board holds it instead. The app never writes to this column or reads from it — the conclusion is yours. The Deductions panel (❓) can highlight a card it has worked out must be in the envelope, but it never marks this column for you — recording that conclusion here is yours to make.</p>
+
+        <h3>The Deductions panel (❓)</h3>
+        <p>The ❓ button in the header opens the Deductions panel — optional help that sits beside the Guide and Rules. The app still never solves the game for you. What these helpers do is point out things your own marks already prove but that are easy to miss in the moment, and they can flag a slip — a card you've actually ruled out, a player whose hand no longer adds up — before it leads you astray. Every helper starts off; you tick the ones you want, and you can change your mind any time. None of them ever writes a mark — all you get is some color on the board and the occasional note, both of which you're free to ignore.</p>
+        <p>Each one is a checkbox. Here's why you'd reach for each; the full wording is in the appendix at the very end of this guide, which you really don't have to read.</p>
+        <ul>
+            <li><strong>Must be part of the answer (green).</strong> When you want the cards that have been cornered into the solution to announce themselves the instant it happens.</li>
+            <li><strong>Ruled out (red).</strong> Keeps the cards already off the table settled in your mind, so you stop re-checking ones you've decided.</li>
+            <li><strong>Gave it away on a show (red).</strong> Catches a card a player let slip when they showed, without you replaying the show in your head.</li>
+            <li><strong>Hand fully known (red).</strong> Once you've found every card a player holds, stops you wondering about the rest of their column.</li>
+            <li><strong>Must hold (green).</strong> The flip side — when the ✗s have boxed a player in, shows you what they're forced to be holding.</li>
+            <li><strong>Last card standing (green).</strong> Flags a category's winner the moment everything else in it is ruled out.</li>
+            <li><strong>Fencing (red).</strong> The heavy one: works out cards a player must hold from the pattern of their shows — easiest to miss by eye — and posts a short note when it pins a hand down. Turn it on when you want the most help.</li>
+        </ul>
 
         <h3>Game Decks</h3>
-        <p>A Game Deck is the set of category and card names for a particular variant — say, classic Clue, Master Detective, or your own house mix. You can save up to four decks. Saving a deck stores only the names and where the category banners sit. The Game Deck bar is only visible during Setup — once you tap Start Game it hides itself, and stays hidden until you tap New Game. So switching variants mid-game isn't possible; finish the current game (or start a new one) first.</p>
+        <p>A Game Deck is the set of category and card names for a particular variant — say, classic Clue, Master Detective, or your own house mix. You can save up to four decks. Saving a deck stores all that's needed to complete Steps 1 through 4.</p>
+        <ul>
+            <li>The Game Deck bar across the top of the grid holds the deck slots during Setup.</li>
+            <li>In Play that same bar becomes the Directive Bar, so the deck slots aren't on screen mid-game — which is why switching variants mid-game isn't possible.</li>
+        </ul>
         <p>Each deck slot has its own Rules text area (under the 📋 Rules button in the header). Paste the rules sheet for that variant once, and they'll be there next time you load that deck.</p>
 
         <h3>If something feels stuck</h3>
-        <p>The Phase Bar shows a status message when a click was rejected — "Asker can't be the shower", "Bob already has ✗ on all three", that sort of thing. The app stops you from recording something inconsistent, but it never decides things for you. If a guard blocks you and you disagree, check the cells in question; usually the guard is right, but the underlying state is wrong, and the fix is to Undo and re-record.</p>
+        <p>The Phase Bar shows a status message when a click was rejected — that the asker can't also be the shower, say, or that a player already has ✗ on every asked card, that sort of thing. The app stops you from recording something inconsistent, but it never decides things for you. If a guard blocks you and you disagree, check the cells in question; usually the guard is right, but the underlying state is wrong, and the fix is to Undo and re-record.</p>
         <p>Have fun. The whole point is to play the game and let the page do the bookkeeping.</p>
+
+        <h3>Appendix — what each helper means</h3>
+        <p>You don't need any of this to play; it's here for when you want to know exactly what a color is telling you. The helpers live behind the ❓ button and are all off until you switch them on. Their colors only show during play, and the panel opens on its own whenever you go into Setup. Nothing here ever changes a mark — a real ✓ or ✗, the current player's highlight, and the grey of a muted row all paint straight over any hint.</p>
+        <p>The seven helpers, in the order they appear:</p>
+        <ul>
+            <li><strong>Must be part of the answer (green).</strong> When every player has been ruled out on a card's row, no one holds it — so it has to be one of the secret cards. Its name turns green. Worked out fresh each time the board redraws, so it can never show a stale answer.</li>
+            <li><strong>Ruled out (red).</strong> A card someone is confirmed to hold (a ✓ or ✓* anywhere on its row), or one you've checked onto the board in the 🏠 column, can't be a secret card. Its name turns red.</li>
+            <li><strong>Gave it away on a show (red).</strong> When a player showed someone a card and already has ✗ on every other card asked that turn, the card they showed is the only one left — they must hold it. Its name turns red. It watches every show between two other players, in the Log and in the turn you're on, so the red lands the moment a show gives a card away; a ✗ you learn later counts too. If the marks ever contradict a show, it colors nothing.</li>
+            <li><strong>Hand fully known (red).</strong> When you've marked a player as holding as many cards as they were dealt, the rest of their hand is accounted for — every other cell in their column is a card they can't hold, tinted red.</li>
+            <li><strong>Must hold (green).</strong> The reverse: when a player's column is ✗ everywhere except exactly as many cards as they were dealt, those survivors have to be their hand — each tinted green.</li>
+            <li><strong>Last card standing (green).</strong> When every card in a category but one is ruled out, the survivor must be that category's secret card. Its name turns green.</li>
+            <li><strong>Fencing (red).</strong> Every show between two other players proves the shower holds at least one of the cards asked that turn. Once enough of those proofs — each about different cards — pin down all of a player's unseen cards, the rest of their column must be cards they don't hold, tinted red.</li>
+        </ul>
+        <p><strong>A few shared rules.</strong> Hand fully known, Must hold, and Fencing all need to know how many cards a player was dealt; without that count typed in, they stay quiet for that player. Your own column is skipped — it's settled the moment you start. Muted rows are ignored. And if the marks ever contradict a rule, it colors nothing.</p>
+        <p><strong>Where the color lands.</strong> Some helpers tint a card's name on the left — green for "in the answer," red for "ruled out" — because the fact is about the card itself. Others tint cells inside one player's column — a quiet red for a card they can't hold, a quiet green for one they must — because the fact is about that one player.</p>
+        <p><strong>Asking "why?"</strong> Right-click a tinted card name during play and a small note tells you why it's colored — which player holds it, which show gave it away and when, or that it's the last card left in its category. The note works it out on the spot and clears itself after a few seconds. (Column-cell tints don't have this — a right-click there is how you cycle a mark by hand.)</p>
+        <p><strong>The fencing notes.</strong> While Fencing is on, an area under the checkboxes posts the few facts that don't show anywhere else on the board. When it pins down a player's whole hand it names what's now known — for example "Eve holds: Plum, Rope and Hall (turns 1, 2 and 3)." If the marks can't all be true it says so in red, and flashes a brief warning in case the panel is closed. When there's nothing to report it reads "Nothing definite yet."</p>
     `;
 }
 // M7: theme toggle. Dark is the default. Light is opt-in.
@@ -4012,30 +4197,30 @@ function modalConfirm(opts) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// M10/04: PLAYER NICKNAME (was M4 card-count; informational, per player).
-// Stored as 4-char strings. The slot keeps the same on-screen layout
-// "Scarlett (Pat)" — only the input meaning changed.
+// F4: PLAYER CARD COUNT (the original M4 design, restored; real data,
+// per player). Stored as numbers — null = not entered (display shows
+// '?'). Same on-screen layout "Pat (5)": name box = the person playing,
+// parentheses = how many cards they were dealt. Carried in autosaves
+// and decks. The count deduction rules read this array.
 // ═══════════════════════════════════════════════════════════════════
-let playerNicknames = Array(MAX_PLAYERS).fill(''); // empty string = no nickname (display shows '?')
-function onNicknameChange(col) {
+let playerCardCounts = Array(MAX_PLAYERS).fill(null);
+function onCardCountChange(col) {
     const inp = document.getElementById('p'+(col+1)+'c');
     if (!inp) return;
-    // 4-char hard cap, trim whitespace on both ends so display stays tidy
-    let v = inp.value.slice(0, 4);
+    // Digits only, 2-char hard cap; anything else is stripped as typed.
+    let v = inp.value.replace(/\D/g, '').slice(0, 2);
     if (v !== inp.value) inp.value = v;
-    playerNicknames[col] = v.trim();
-    refreshNicknameDisplays();
+    playerCardCounts[col] = v === '' ? null : parseInt(v, 10);
+    refreshCardCountDisplays();
     updatePhaseBarText();
     autoSave();
 }
-function refreshNicknameDisplays() {
+function refreshCardCountDisplays() {
     for (let col = 0; col < MAX_PLAYERS; col++) {
         const dEl = document.getElementById('p'+(col+1)+'cd');
-        if (dEl) dEl.textContent = playerNicknames[col] ? playerNicknames[col] : '?';
+        if (dEl) dEl.textContent = (playerCardCounts[col] === null) ? '?' : String(playerCardCounts[col]);
     }
 }
-// Back-compat shim — older code paths still call refreshCardCountDisplays().
-function refreshCardCountDisplays() { refreshNicknameDisplays(); }
 
 // ═══════════════════════════════════════════════════════════════════
 // M4: PLAYER OUT (mid-game player dropout)
@@ -4058,7 +4243,7 @@ function getOutKind(col)  { return playerOutKind[col] || ''; }
 // ═══════════════════════════════════════════════════════════════════
 // M11/14 — PER-STEP SNAPSHOTS
 //   Each setup step gets its own saved snapshot (categories, mutes,
-//   player names + nicknames, plus the typing-undo stack). The snapshot
+//   player names + card counts, plus the typing-undo stack). The snapshot
 //   for Step N is captured the moment the user leaves Step N — whether
 //   forward via Next or backward via Undo. When they re-enter Step N,
 //   the snapshot is restored, so each step looks exactly the way they
@@ -4067,11 +4252,11 @@ function getOutKind(col)  { return playerOutKind[col] || ''; }
 // ═══════════════════════════════════════════════════════════════════
 let stepSnapshots = {};   // M12/01: { [stepNum]: { categories, mutedCategoryIdxs,
                           //                          mutedCards, typingUndoStack } }
-                          //   Names + nicknames are NOT snapshotted; the DOM input
+                          //   Names + card counts are NOT snapshotted; the DOM input
                           //   boxes own those (Step 4 is the only step that edits them).
 
-// M12/01: per-step snapshots no longer carry headerNames / playerNicknames.
-//   Player names and nicknames are only editable in Step 4, so the DOM input
+// M12/01: per-step snapshots no longer carry headerNames / playerCardCounts.
+//   Player names and card counts are only editable in Step 4, so the DOM input
 //   boxes are the single source of truth. Snapshotting them per step caused
 //   a stale Step-5 snapshot to clobber later edits made back in Step 4.
 function captureStepSnapshot() {
@@ -4089,7 +4274,7 @@ function restoreStepSnapshot(snap) {
     normalizeCategoryShape();
     mutedCategoryIdxs = new Set(snap.mutedCategoryIdxs || []);
     mutedCards        = new Set(snap.mutedCards || []);
-    // M12/01: headerNames + playerNicknames intentionally NOT restored — see capture.
+    // M12/01: headerNames + playerCardCounts intentionally NOT restored — see capture.
     typingUndoStack = (snap.typingUndoStack || []).map(e => ({ ...e }));
     rebuildAllCards();
     buildTable();
@@ -4129,13 +4314,13 @@ function applyTypingUndo(entry) {
             }
             break;
         }
-        case 'nickname':
-        case 'card-count': /* legacy alias from M4 */ {
+        case 'card-count':
+        case 'nickname': /* legacy alias from the nickname era */ {
             const inp = document.getElementById('p' + (entry.col + 1) + 'c');
             if (inp) {
                 inp.value = entry.oldValue;
                 inp._oldTypingValue = undefined;
-                onNicknameChange(entry.col);
+                onCardCountChange(entry.col);
             }
             break;
         }
@@ -4195,12 +4380,12 @@ function wireTypingInput(input, entryBuilder) {
 // M11/01: M4 per-cell mini-notes removed — right-click on a player×card cell
 // now drives the manual mark cycle instead. See cycleManualMark().
 
-// M4: Summary column manual marks, keyed by card name. Value: '' | 'x' | 'star'
+// M4: Summary column manual marks, keyed by card name. Value: '' | 'x' | 'check'
 let summaryMarks = {};
 function getSummaryMark(card) { return summaryMarks[card] || ''; }
 function cycleSummaryMark(card) {
     const cur = summaryMarks[card] || '';
-    summaryMarks[card] = (cur === '' ? 'x' : (cur === 'x' ? 'star' : ''));
+    summaryMarks[card] = (cur === '' ? 'x' : (cur === 'x' ? 'check' : ''));
     if (!summaryMarks[card]) delete summaryMarks[card];
 }
 
@@ -4642,9 +4827,9 @@ function snapshotCurrentDeck(name) {
         name: (name || 'Deck').trim().slice(0, 6) || 'Deck',
         categories: CATEGORIES.map(c => ({ name:c.name, cards:[...c.cards] })),
         players: players,
-        // M10/04: 4-char nicknames ride with the players so the same seat-name layout
-        //   ("Scarlett (Pat)") comes back on every laptop after a deck load.
-        nicknames: [...playerNicknames],
+        // F4: card counts ride with the players so the same header layout
+        //   ("Pat (5)") comes back on every laptop after a deck load.
+        cardCounts: [...playerCardCounts],
         // M11/28 (#15): muted layout saved with the deck so a load restores exactly the
         //   cards/categories that were switched off when it was saved.
         mutedCategoryIdxs: [...mutedCategoryIdxs],
@@ -4728,7 +4913,7 @@ function _doLoadGameDeck(idx, deck, opts) {
     //   • cellState marks (including Me's ✓), summaryMarks (∑), roomChecked — ALL WIPED
     //   • mutedCategoryIdxs / mutedCards — set FROM THE DECK (old decks with no
     //     stored layout fall back to the built-in default: Cat 4 + last 3 cards)
-    //   • playerNames, playerNicknames, gameLog, turnCount, gamePhase — UNTOUCHED
+    //   • playerNames, playerCardCounts, gameLog, turnCount, gamePhase — UNTOUCHED
     // Rationale: a preserved ✓ could silently re-point to a different card after the
     // labels change, so we clear the board rather than carry marks across decks.
     // The startup auto-restore (~3690) only loads a deck when no game is in progress,
@@ -4783,21 +4968,24 @@ function _doLoadGameDeck(idx, deck, opts) {
                 ph.value = deck.players[i];
             }
         }
-        // M10/04: Nicknames ride with the players. If the deck has them, restore;
-        //   otherwise clear so we don't inherit nicknames from whatever was on screen.
-        if (Array.isArray(deck.nicknames) && deck.nicknames.length === MAX_PLAYERS) {
-            playerNicknames = deck.nicknames.map(v => (typeof v === 'string' ? v.slice(0, 4) : ''));
+        // F4: Card counts ride with the players. If the deck has them, restore;
+        //   otherwise clear so we don't inherit counts from whatever was on
+        //   screen. (Decks from the nickname era carried `nicknames` — text;
+        //   those are discarded and the counts show '?' until typed.)
+        if (Array.isArray(deck.cardCounts) && deck.cardCounts.length === MAX_PLAYERS) {
+            playerCardCounts = deck.cardCounts.map(v =>
+                (typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 99) ? v : null);
         } else {
-            playerNicknames = Array(MAX_PLAYERS).fill('');
+            playerCardCounts = Array(MAX_PLAYERS).fill(null);
         }
         for (let i = 0; i < MAX_PLAYERS; i++) {
             const cc = document.getElementById('p' + (i + 1) + 'c');
-            if (cc) cc.value = playerNicknames[i] || '';
+            if (cc) cc.value = (playerCardCounts[i] === null) ? '' : String(playerCardCounts[i]);
         }
-        refreshNicknameDisplays();
+        refreshCardCountDisplays();
     }
 
-    // 5) Player names/nicknames, gameLog, turn counters, gamePhase, undo stacks —
+    // 5) Player names/card counts, gameLog, turn counters, gamePhase, undo stacks —
     //    preserved. (Muted state is set from the deck in step 3; marks are wiped in step 2.)
     //
     // M10/Me: Me is session state, NOT deck data. Always clear it on deck load so each
@@ -4849,7 +5037,8 @@ function deleteGameDeck(idx) {
 // File shape is versioned so future loaders can read older exports.
 // ═══════════════════════════════════════════════════════════════════
 const DECK_FILE_FORMAT  = 'mystery-tracker-deck';
-const DECK_FILE_VERSION = 2;   // was 1 — v2 adds the muted layout
+const DECK_FILE_VERSION = 3;   // v2 added the muted layout; v3 carries card
+                               // counts (numbers) where v2 carried nicknames
 
 function openDeckSlotMenu(idx, x, y) {
     _ctxTarget = { kind:'deck-slot', idx }; _ctxX = x; _ctxY = y;
@@ -4876,11 +5065,7 @@ function openDeckSlotMenu(idx, x, y) {
     menu.appendChild(itemDelete);
 
     menu.classList.add('open');
-    const rect = menu.getBoundingClientRect();
-    const xMax = window.innerWidth  - rect.width  - 4;
-    const yMax = window.innerHeight - rect.height - 4;
-    menu.style.left = Math.min(x, xMax) + 'px';
-    menu.style.top  = Math.min(y, yMax) + 'px';
+    positionPopupAtCursor(menu, x, y, 4);
 }
 
 // Sanitize a deck name into a safe filename fragment.
@@ -4911,8 +5096,8 @@ function exportDeckSlot(idx) {
             name:  (c && typeof c.name === 'string') ? c.name : 'Category',
             cards: Array.isArray(c && c.cards) ? [...c.cards] : []
         })),
-        players:   Array.isArray(deck.players)   ? [...deck.players]   : [],
-        nicknames: Array.isArray(deck.nicknames) ? [...deck.nicknames] : [],
+        players:    Array.isArray(deck.players)    ? [...deck.players]    : [],
+        cardCounts: Array.isArray(deck.cardCounts) ? [...deck.cardCounts] : [],
         mutedCategoryIdxs: [...(deck.mutedCategoryIdxs || [])],
         mutedCards:        [...(deck.mutedCards || [])],
         rules:     rulesText
@@ -5023,8 +5208,10 @@ function commitImport(slotIdx) {
                 name:  (c && typeof c.name === 'string') ? c.name : 'Category',
                 cards: Array.isArray(c && c.cards) ? [...c.cards] : []
             })),
-            players:   Array.isArray(data.players)   ? [...data.players]   : [],
-            nicknames: Array.isArray(data.nicknames) ? [...data.nicknames] : [],
+            players:    Array.isArray(data.players)    ? [...data.players]    : [],
+            // F4: v3 files carry cardCounts. Older v2 files carried text
+            // nicknames — discarded; the slot reads '?' until counts are typed.
+            cardCounts: Array.isArray(data.cardCounts) ? [...data.cardCounts] : [],
             mutedCategoryIdxs: [...(data.mutedCategoryIdxs || [])],
             mutedCards:        [...(data.mutedCards || [])]
         };
@@ -5141,12 +5328,8 @@ function renderCtxMenu() {
         menu.appendChild(div);
     });
     menu.classList.add('open');
-    // Position, but keep on-screen
-    const rect = menu.getBoundingClientRect();
-    const xMax = window.innerWidth  - rect.width  - 4;
-    const yMax = window.innerHeight - rect.height - 4;
-    menu.style.left = Math.min(_ctxX, xMax) + 'px';
-    menu.style.top  = Math.min(_ctxY, yMax) + 'px';
+    // Position under the cursor (zoom-corrected), kept on-screen.
+    positionPopupAtCursor(menu, _ctxX, _ctxY, 4);
 }
 
 function hideCtxMenu() {
@@ -5154,7 +5337,31 @@ function hideCtxMenu() {
     if (menu) menu.classList.remove('open');
 }
 
+// Item 19: position a fixed popup so its top-left lands under the cursor.
+// The page is drawn at --ui-zoom (0.9), but a mouse event's clientX/Y are the
+// cursor's true on-screen spot, while a fixed element's left/top render inside
+// that zoomed space — so the raw number lands ~10% short, the gap growing
+// toward the bottom-right. Dividing by --ui-zoom cancels it. After placing,
+// nudge back on-screen if the popup would overflow (pad = edge gap in px).
+// Used by every cursor-placed popup; zoom = 1 makes it a no-op.
+function positionPopupAtCursor(el, x, y, pad) {
+    // Item 19 — place a fixed popup so the cursor lands just inside its top-left
+    // (over the first item). x,y are the cursor's on-screen spot (clientX/Y); a
+    // fixed element's left/top render inside the page's CSS zoom (--ui-zoom), so
+    // divide by z — confirmed live in Firefox. zoom = 1 makes it a no-op.
+    const z = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-zoom')) || 1;
+    el.style.left = Math.max(0, (x - 12) / z) + 'px';
+    el.style.top  = Math.max(0, (y - 10) / z) + 'px';
+}
+
 document.addEventListener('click',     hideCtxMenu);
+// Item 11: close the right-click menu when the pointer leaves it. All four
+// menus (banner, card, player, deck slot) share this one #ctxMenu element, and
+// it now opens with the cursor inside it (item 19), so leave-to-close is stable.
+(function () {
+    const ctxMenu = document.getElementById('ctxMenu');
+    if (ctxMenu) ctxMenu.addEventListener('mouseleave', hideCtxMenu);
+})();
 document.addEventListener('contextmenu', e => {
     // M10/Cleanup: Suppress the browser's right-click menu app-wide so right-click is
     // unambiguously "open our context menu (or do nothing)". The page header is exempt
@@ -5175,7 +5382,7 @@ window.addEventListener('load', () => {
         const ph = document.getElementById('p'+i+'h');
         const cc = document.getElementById('p'+i+'c');
         if (ph) wireTypingInput(ph, (oldValue) => ({ type:'player-name', col, oldValue }));
-        if (cc) wireTypingInput(cc, (oldValue) => ({ type:'nickname',  col, oldValue }));
+        if (cc) wireTypingInput(cc, (oldValue) => ({ type:'card-count',  col, oldValue }));
     }
     // M11/31: Tab cycling within the current setup step's input set. Without this,
     //   Tab off the last input wandered into the page header / browser chrome and
@@ -5227,11 +5434,7 @@ window.addEventListener('load', () => {
                 }
                 menu.appendChild(item);
                 menu.classList.add('open');
-                const rect = menu.getBoundingClientRect();
-                const xMax = window.innerWidth - rect.width - 4;
-                const yMax = window.innerHeight - rect.height - 4;
-                menu.style.left = Math.min(_ctxX, xMax) + 'px';
-                menu.style.top  = Math.min(_ctxY, yMax) + 'px';
+                positionPopupAtCursor(menu, _ctxX, _ctxY, 4);
                 return;
             }
             if (gamePhase !== 'play') return;
@@ -5249,11 +5452,7 @@ window.addEventListener('load', () => {
             item.onclick = () => { hideCtxMenu(); openPlayerOutModal(col); };
             menu.appendChild(item);
             menu.classList.add('open');
-            const rect = menu.getBoundingClientRect();
-            const xMax = window.innerWidth - rect.width - 4;
-            const yMax = window.innerHeight - rect.height - 4;
-            menu.style.left = Math.min(_ctxX, xMax) + 'px';
-            menu.style.top  = Math.min(_ctxY, yMax) + 'px';
+            positionPopupAtCursor(menu, _ctxX, _ctxY, 4);
         });
     }
 });
@@ -5400,21 +5599,25 @@ function closeHelpersPanel() {
     document.getElementById('btnHelpers')?.classList.remove('active');
 }
 
-// ── Saved choices — the feature's own localStorage key (theme-key
-//    pattern). Both options start OFF; bad/missing data keeps defaults.
-const OPTRULES_KEY = 'mtr_optrules_v1';
-let optRules = { yesTint: false, noTint: false };
-try {
-    const saved = JSON.parse(localStorage.getItem(OPTRULES_KEY));
-    if (saved && typeof saved === 'object') {
-        optRules.yesTint = !!saved.yesTint;
-        optRules.noTint  = !!saved.noTint;
-    }
-} catch (e) { /* keep defaults */ }
-
-function saveOptRules() {
-    try { localStorage.setItem(OPTRULES_KEY, JSON.stringify(optRules)); } catch (e) {}
+// F5: the panel defaults OPEN on entering Setup — page load that lands
+// in Setup, New Game, and Return to Setup (hooks below). It never
+// auto-closes; the user closes it, or Guide/Rules replaces it.
+function openHelpersPanel() {
+    document.getElementById('guidePanel')?.classList.remove('visible');
+    document.getElementById('rulesPanel')?.classList.remove('visible');
+    document.getElementById('btnGuide')?.classList.remove('active');
+    document.getElementById('btnRules')?.classList.remove('active');
+    document.getElementById('helpersPanel')?.classList.add('visible');
+    document.getElementById('btnHelpers')?.classList.add('active');
 }
+
+// ── Saved choices — ride the game snapshot (schemaVersion 8; see the
+//    getSnapshot/applySnapshot wraps below). ALL rules start OFF.
+//    A snapshot restore brings them back mid-game; New Game and older
+//    saves (schema ≤ 7, no optRules field) start all-off. Decks never
+//    carry them.
+let optRules = { yesTint: false, noTint: false, showElim: false, handKnown: false, mustHold: false, lastCard: false, fencing: false };
+try { localStorage.removeItem('mtr_optrules_v1'); } catch (e) {}   // retired standalone key
 
 // ── Checklist — the module draws its own checkboxes into the panel.
 function buildOptRulesChecklist() {
@@ -5422,12 +5625,29 @@ function buildOptRulesChecklist() {
     if (!body) return;
     body.innerHTML = '';
     const intro = document.createElement('p');
-    intro.textContent = 'Optional helpers. Each one only colors the board — none of them ever places a mark.';
+    intro.textContent = 'Optional helpers:';
     body.appendChild(intro);
     addOptRuleCheckbox(body, 'yesTint',
         'Green tint on cards that must be part of the answer.');
     addOptRuleCheckbox(body, 'noTint',
         'Red tint on cards that are ruled out — someone holds them, or they are on the board.');
+    addOptRuleCheckbox(body, 'showElim',
+        'Red tint on a card a shower gave away — they had ✗ on the other asked cards.');
+    addOptRuleCheckbox(body, 'handKnown',
+        'Red tint down a player\'s column once all their cards are found — with every card in their hand ✓\'d, the rest of their column is a silent ✗.');
+    addOptRuleCheckbox(body, 'mustHold',
+        'Green tint on the cards a player must be holding — their column is ✗\'d everywhere except exactly their card count\'s worth of cards.');
+    addOptRuleCheckbox(body, 'lastCard',
+        'Green tint on the last card left in a category — every other card there is ruled out.');
+    addOptRuleCheckbox(body, 'fencing',
+        'Fence in each player\'s hand from their shows. Pin down all of a player\'s unseen cards, the rest of their column tints red: silent ✗s.');
+    // F5: the fence notes live under the checkboxes, visible only
+    // while the fencing rule is on. Filled by renderFenceNotes().
+    const notes = document.createElement('div');
+    notes.id = 'fenceNotes';
+    notes.style.cssText = 'margin-top:10px;padding-top:8px;border-top:1px solid var(--text-muted);font-size:0.92rem;';
+    body.appendChild(notes);
+    renderFenceNotes();
 }
 
 function addOptRuleCheckbox(parent, prefKey, labelText) {
@@ -5439,7 +5659,7 @@ function addOptRuleCheckbox(parent, prefKey, labelText) {
     cb.style.cssText = 'margin-top:3px;cursor:pointer;';
     cb.onchange = () => {
         optRules[prefKey] = cb.checked;
-        saveOptRules();
+        autoSave();              // states ride the game snapshot
         refreshOptRuleTints();   // takes effect immediately, setup or play
     };
     const span = document.createElement('span');
@@ -5458,9 +5678,58 @@ function optRuleTintFor(card) {
     if (!isRowActive(card)) return '';   // muted rows stay plain
     if (optRules.yesTint && isSolutionCandidate(card))
         return 'color-mix(in srgb, var(--mark-check-fg) 25%, var(--row-th-bg))';
+    if (optRules.lastCard && isLastCardStanding(card))
+        return 'color-mix(in srgb, var(--mark-check-fg) 25%, var(--row-th-bg))';
     if (optRules.noTint && isCardRuledOut(card))
         return 'color-mix(in srgb, var(--mark-cross-fg) 25%, var(--row-th-bg))';
+    if (optRules.showElim && showElimHolderFor(card))
+        return 'color-mix(in srgb, var(--mark-cross-fg) 25%, var(--row-th-bg))';
     return '';
+}
+
+// ── F3 · N-1 elimination on the show — goes through each logged turn
+//    where one OTHER player showed another a card (shows involving Me
+//    are already exact: ✓* lands, or Me did the showing). If the shower
+//    has ✗ on all that turn's asked cards but one, the show gave that
+//    last card away — the shower holds it, so it's out of the answer.
+//    ✗s learned later count: cards never move, so a ✗ learned on turn
+//    12 was just as true on turn 5. Recomputed live over the whole log
+//    at paint time. If the marks contradict a show (✗ on every asked
+//    card), the rule draws nothing. Returns { name, turn } of the
+//    earliest give-away show, or null.
+function showElimHolderFor(card) {
+    // The turn in progress lives in liveLogEntry until Next commits it —
+    // scan it too, so the red lands the moment a show gives the card away.
+    const entries = liveLogEntry ? [...gameLog, liveLogEntry] : gameLog;
+    for (const e of entries) {
+        if (!e.showerName || !Array.isArray(e.asked) || e.asked.length < 2) continue;
+        if ((e.shownMe && e.shownMe.length) || (e.iShowed && e.iShowed.length)) continue;
+        const showerCol = turnOrder.find(c => getColName(c) === e.showerName) ?? -1;
+        if (showerCol < 0) continue;
+        const survivors = e.asked.filter(a => {
+            const s = cellState[a] && cellState[a][showerCol];
+            return !(s && s.cross);
+        });
+        if (survivors.length === 1 && survivors[0] === card)
+            return { name: e.showerName, turn: e.turn };
+    }
+    return null;
+}
+
+// ── F3 · Last-card-standing — a category's only surviving card must
+//    be the answer, even before its own row fills with ✗s. Recomputed
+//    live (never the stored solutionCards set). Muted cards don't
+//    count as survivors and don't need to be ruled out.
+function isLastCardStanding(card) {
+    if (isCardRuledOut(card)) return false;       // can't be the survivor
+    const ci = getCatIdxOf(card);
+    if (ci < 0 || !isCategoryActive(ci)) return false;
+    for (const other of CATEGORIES[ci].cards) {
+        if (other === card) continue;
+        if (!isCardActive(other)) continue;       // muted card — ignore
+        if (!isCardRuledOut(other)) return false; // another survivor
+    }
+    return true;
 }
 
 // Red's test: the card is known out of the answer — some player is
@@ -5479,23 +5748,365 @@ function applyOptRuleTint(card) {
     if (th) th.style.background = optRuleTintFor(card);
 }
 
+// ── F4 · Hand fully known — when a player's card count is N and their
+//    column holds N "they have it" marks (✓ / ✓*), their whole hand is
+//    accounted for: every other card in that column is a silent ✗.
+//    Me's column is skipped (your own hand is fully ✓'d at Start Game —
+//    tinting it would be noise). More ✓s than the count is a
+//    contradiction — the rule draws nothing. Recomputed live from the
+//    marks + playerCardCounts at paint time; counts only marks on
+//    active rows.
+function handFullyKnown(col) {
+    if (col === meCol) return false;
+    const n = playerCardCounts[col];
+    if (typeof n !== 'number') return false;     // no count typed → rule can't run
+    let held = 0;
+    for (const card of ALL_CARDS) {
+        if (!isRowActive(card)) continue;
+        const s = cellState[card] && cellState[card][col];
+        if (s && (s.check || s.shownToMe)) held++;
+    }
+    return held === n;
+}
+
+// ── F4 · Must hold — the reverse: when a player's column is ✗'d on
+//    every active card except exactly N survivors (N = their card
+//    count), those survivors must be their whole hand. Same guards:
+//    Me skipped, no count = silent, muted rows aren't survivors, and
+//    fewer survivors than the count is a contradiction — draws
+//    nothing. (More survivors than the count is just normal mid-game.)
+function mustHoldSurvivors(col) {
+    if (col === meCol) return false;
+    const n = playerCardCounts[col];
+    if (typeof n !== 'number') return false;
+    let survivors = 0;
+    for (const card of ALL_CARDS) {
+        if (!isRowActive(card)) continue;
+        const s = cellState[card] && cellState[card][col];
+        if (!(s && s.cross)) survivors++;
+    }
+    return survivors === n;
+}
+
+// ── F5 · Fencing — every show between two OTHER players proves the
+//    shower holds at least one of that turn's asked cards: a fence.
+//    Goes through the committed log plus the turn in progress (same
+//    scan as the N-1 rule). A fence's survivors are that turn's asked
+//    cards minus muted rows and minus cards with a real ✗ in the
+//    shower's column. A ✓/✓* on any asked card explains the show —
+//    the fence dissolves. No survivors at all is a contradiction —
+//    the fence draws nothing, but it is reported (F5.1): the show
+//    really happened, so one of the marks behind it must be wrong.
+//    Recomputed live at paint time. Me is never fenced (shows
+//    involving Me are exact; those entries are filtered out the
+//    same way the N-1 rule does it).
+//    Returns { fences, contradictions } — contradictions are the
+//    zero-survivor shows: { col, name, turn }.
+function computeFences() {
+    if (gamePhase !== 'play' || turnOrder.length === 0) return { fences: [], contradictions: [] };
+    const entries = liveLogEntry ? [...gameLog, liveLogEntry] : gameLog;
+    const fences = [];
+    const contradictions = [];
+    for (const e of entries) {
+        if (!e.showerName || !Array.isArray(e.asked) || e.asked.length === 0) continue;
+        if ((e.shownMe && e.shownMe.length) || (e.iShowed && e.iShowed.length)) continue;
+        const col = turnOrder.find(c => getColName(c) === e.showerName) ?? -1;
+        if (col < 0 || col === meCol) continue;
+        let explained = false;
+        const survivors = [];
+        for (const card of e.asked) {
+            if (!isRowActive(card)) continue;        // muted card — not in the game
+            const s = cellState[card] && cellState[card][col];
+            if (s && (s.check || s.shownToMe)) { explained = true; break; }
+            if (!(s && s.cross)) survivors.push(card);
+        }
+        if (explained) continue;                     // a known ✓ satisfies the show
+        if (survivors.length === 0) {                // contradiction — draw nothing, report it
+            contradictions.push({ col, name: e.showerName, turn: e.turn });
+            continue;
+        }
+        fences.push({ col, name: e.showerName, turn: e.turn, survivors });
+    }
+    return { fences, contradictions };
+}
+
+// ── F5 · Closing a column with fences. Needs the player's card count:
+//    unseen = count − their known ✓/✓*s (active rows only). When a set
+//    of that player's fences, none sharing a card, matches the unseen
+//    number exactly, each fence pins one unseen card — every unmarked
+//    card OUTSIDE those fences is a silent ✗. The search is exhaustive
+//    (fence counts are small). If several different fence sets close
+//    the column, only cards inside ALL of them escape the tint — each
+//    set justifies its own exclusion. Guards: Me skipped; no count =
+//    silent. A contradiction — unexplained fences left when the whole
+//    hand is already found, or more non-overlapping fences than unseen
+//    cards — draws nothing but is reported (F5.1): the shows can't fit
+//    the hand, so a mark or the card count must be wrong.
+//    Returns null (nothing to say), or:
+//      { contradiction: true } — the shows don't fit the hand; or
+//      { closed: true,  escape, turns, unseen } — the column is closed:
+//        the cards that escape the tint, the turns that did it; or
+//      { closed: false, unseen, disjoint } — progress: how many fences
+//        that don't overlap, vs the unseen count.
+function fenceStatusFor(col, colFences) {
+    if (col === meCol || colFences.length === 0) return null;
+    const n = playerCardCounts[col];
+    if (typeof n !== 'number') return null;       // no count — the rule can't close
+    let held = 0;
+    for (const card of ALL_CARDS) {
+        if (!isRowActive(card)) continue;
+        const s = cellState[card] && cellState[card][col];
+        if (s && (s.check || s.shownToMe)) held++;
+    }
+    const unseen = n - held;
+    if (unseen < 1) return { contradiction: true }; // fences exist but the hand is full
+    const sets = colFences.map(f => f.survivors);
+    let maxSize = 0;
+    const unions = [];
+    const turns = new Set();
+    const used = new Set();
+    const chosen = [];
+    (function rec(start, count) {
+        if (count > maxSize) maxSize = count;
+        if (count === unseen) {
+            unions.push(new Set(used));
+            chosen.forEach(j => turns.add(colFences[j].turn));
+        }
+        for (let j = start; j < sets.length; j++) {
+            if (sets[j].some(c => used.has(c))) continue;   // overlap — skip
+            sets[j].forEach(c => used.add(c));
+            chosen.push(j);
+            rec(j + 1, count + 1);
+            chosen.pop();
+            sets[j].forEach(c => used.delete(c));
+        }
+    })(0, 0);
+    if (maxSize > unseen) return { contradiction: true }; // draw nothing, report it
+    if (maxSize === unseen && unions.length > 0) {
+        let escape = unions[0];
+        for (let i = 1; i < unions.length; i++)
+            escape = new Set([...escape].filter(c => unions[i].has(c)));
+        return { closed: true, escape, turns, unseen };
+    }
+    return { closed: false, unseen, disjoint: maxSize };
+}
+
+// The column-cell tints for the count rules and fence closes. Red: a
+// fully-known hand's leftover cells — or a fence-closed column's cells
+// outside the fences — are silent ✗s. Green: a column cut down to
+// exactly its count's worth of survivors — the unmarked survivors are
+// silent ✓s. The classes' CSS deliberately has no !important, so the
+// grid's own ✓/✗ colors, the current-turn column highlight, and
+// muted-row grey all win over them.
+function refreshCountRuleCellTints() {
+    const inPlay = (gamePhase === 'play' && turnOrder.length > 0);
+    const fences = (inPlay && optRules.fencing) ? computeFences().fences : [];
+    for (let col = 0; col < MAX_PLAYERS; col++) {
+        const fireRed   = inPlay && optRules.handKnown && handFullyKnown(col);
+        const fireGreen = inPlay && optRules.mustHold  && mustHoldSurvivors(col);
+        const st        = optRules.fencing
+            ? fenceStatusFor(col, fences.filter(f => f.col === col)) : null;
+        const closed    = (st && st.closed) ? st : null;
+        document.querySelectorAll(`td[data-col="${col}"]`).forEach(td => {
+            const card = td.dataset.card;
+            const s = card && cellState[card] && cellState[card][col];
+            const plain = !!s && !s.check && !s.cross && isRowActive(card);
+            const fenceRed = !!(closed && plain && !closed.escape.has(card));
+            td.classList.toggle('optrule-silent-x',     (fireRed && plain) || fenceRed);
+            td.classList.toggle('optrule-silent-check', fireGreen && plain);
+        });
+    }
+}
+
+// ── F5 · Fence notes — the panel posts only what is definite AND
+//    cannot be shown any other way (Patrick, 2026-06-12, F5.1).
+//    One line per player, and only once their column has closed.
+//    Every close posts a line — the tint can't explain itself
+//    (right-click on a tinted cell is the mark cycle, not a Why).
+//    Plain shapes, no fence talk (Patrick): all unseen cards
+//    named (with turns); or "holds X and Y — 1 unknown card";
+//    or just the unknown count. No progress lines. Only
+//    players with a card count typed can close (without one the
+//    rule can't close, so there's nothing to report). Recomputed
+//    live; newest activity first (matches the Log). Individual
+//    fences are NOT listed — the ! marks and the Log already show
+//    them (Patrick, 2026-06-12). Contradictions and fully-found
+//    hands stay silent.
+function fmtTurnList(turnSet) {
+    const t = [...turnSet].sort((a, b) => a - b);
+    if (t.length === 1) return 'turn ' + t[0];
+    return 'turns ' + t.slice(0, -1).join(', ') + ' and ' + t[t.length - 1];
+}
+
+function addFenceNote(box, text, conflict) {
+    const div = document.createElement('div');
+    div.style.cssText = 'margin:0 0 8px;' + (conflict ? 'color:var(--red);' : '');
+    div.textContent = text;
+    box.appendChild(div);
+}
+
+// F5.1: each conflict is announced ONCE with the engine's brief status
+// message the moment it first appears (the panel may be closed). Fixed
+// conflicts drop out of this memory, so a recurrence announces again.
+// Cleared when the rule is off, so re-enabling re-announces live ones.
+let announcedConflicts = new Set();
+
+function renderFenceNotes() {
+    const box = document.getElementById('fenceNotes');
+    if (!box) return;
+    box.style.display = optRules.fencing ? '' : 'none';
+    if (!optRules.fencing) { box.innerHTML = ''; announcedConflicts = new Set(); return; }
+    box.innerHTML = '';
+    const { fences, contradictions } = computeFences();
+    // Conflicts first — they outrank results. Newest first, like the Log.
+    const conflicts = [...contradictions]
+        .sort((a, b) => b.turn - a.turn)
+        .map(c => ({
+            key:    `show:${c.col}:${c.turn}`,
+            line:   `${c.name}'s show on turn ${c.turn} conflicts with the ✗s in their column — one of those marks is wrong.`,
+            status: `${c.name}'s show on turn ${c.turn} conflicts with the ✗s in their column — check the ? panel.`
+        }));
+    // One line per player; order by newest fence, like the Log.
+    const cols = [...new Set(fences.map(f => f.col))]
+        .sort((a, b) => Math.max(...fences.filter(f => f.col === b).map(f => f.turn))
+                      - Math.max(...fences.filter(f => f.col === a).map(f => f.turn)));
+    const closedLines = [];
+    for (const col of cols) {
+        const colFences = fences.filter(f => f.col === col);
+        const st = fenceStatusFor(col, colFences);
+        if (!st) continue;
+        const name = colFences[0].name;
+        if (st.contradiction) {
+            conflicts.push({
+                key:    `count:${col}`,
+                line:   `${name}'s shows don't fit their hand — a mark or their card count is wrong.`,
+                status: `${name}'s shows don't fit their hand — check the ? panel.`
+            });
+            continue;
+        }
+        if (!st.closed) continue;
+        // Every close posts one plain line (F5.1, Patrick's wording).
+        // "Holds" = cards from fences narrowed to a single survivor —
+        // those are definitely in the hand.
+        const pinned = ALL_CARDS.filter(c =>
+            colFences.some(f => f.survivors.length === 1 && f.survivors[0] === c));
+        const unknown = st.unseen - pinned.length;
+        const fmtCards = a => a.length === 1 ? a[0]
+            : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+        if (st.escape.size === st.unseen) {
+            const cards = ALL_CARDS.filter(c => st.escape.has(c));
+            closedLines.push(`${name} holds: ${fmtCards(cards)} (${fmtTurnList(st.turns)}).`);
+        } else if (unknown < 1) {
+            closedLines.push(`${name} holds: ${fmtCards(pinned)} (${fmtTurnList(st.turns)}).`);
+        } else {
+            const tail = unknown === 1
+                ? '1 unknown card, not one of the tinted.'
+                : `${unknown} unknown cards, none of the tinted.`;
+            closedLines.push(pinned.length
+                ? `${name} holds ${fmtCards(pinned)} — ${tail}`
+                : `${name}: ${tail}`);
+        }
+    }
+    conflicts.forEach(c => addFenceNote(box, c.line, true));
+    closedLines.forEach(t => addFenceNote(box, t));
+    if (conflicts.length + closedLines.length === 0) {
+        const p = document.createElement('div');
+        p.style.cssText = 'color:var(--text-muted);font-style:italic;';
+        p.textContent = 'Nothing definite yet.';
+        box.appendChild(p);
+    }
+    // Announce any conflict not seen before; forget the ones now fixed.
+    const fresh = conflicts.find(c => !announcedConflicts.has(c.key));
+    if (fresh) showStatus(fresh.status, 'var(--red-lt)');
+    announcedConflicts = new Set(conflicts.map(c => c.key));
+}
+
 function refreshOptRuleTints() {
     ALL_CARDS.forEach(applyOptRuleTint);
+    refreshCountRuleCellTints();
+    renderFenceNotes();
 }
 
 // ── Hooks — wrapped from inside the module so engine code is never
 //    edited. Every repaint of a cell or Room cell (marks, undo, loads,
-//    Start Game, full redraws) also refreshes that card's tint.
+//    Start Game, full redraws) refreshes ALL tints — since F3, a mark
+//    on one card can change another card's tint (last-card-standing),
+//    so one card's repaint is no longer enough. Still cheap: 30 rows.
 const _f1_renderCell = renderCell;
 renderCell = function(card, col) {
     _f1_renderCell(card, col);
-    applyOptRuleTint(card);
+    refreshOptRuleTints();
 };
 const _f1_renderRoomCell = renderRoomCell;
 renderRoomCell = function(card) {
     _f1_renderRoomCell(card);
-    applyOptRuleTint(card);
+    refreshOptRuleTints();
 };
+// F5: the Log renderer runs right after the shower's name lands in the
+// live entry (the cell repaints fire just BEFORE that, too early), so
+// this wrap is what puts fences, notes and closes at the shower tap.
+const _f5_renderFullLog = renderFullLog;
+renderFullLog = function() {
+    _f5_renderFullLog();
+    refreshOptRuleTints();
+};
+
+// ── F5 · Save/load wraps — checkbox states ride the game snapshot.
+//    Wrapped from inside the module like the repaint hooks above, so
+//    the engine's save/load code is never edited. Save: add the rule
+//    states and stamp schemaVersion 8. Load: read them back before the
+//    engine repaints (so the restored board lands with the right tints),
+//    defaulting all-off when the field is absent (older saves), then
+//    redraw the checkboxes to match. New Game resets every rule to off.
+const _f5_getSnapshot = getSnapshot;
+getSnapshot = function() {
+    const snap = _f5_getSnapshot();
+    snap.optRules = { ...optRules };
+    snap.schemaVersion = 8;
+    return snap;
+};
+
+const _f5_applySnapshot = applySnapshot;
+applySnapshot = function(d) {
+    const o = (d && d.optRules && typeof d.optRules === 'object') ? d.optRules : null;
+    for (const k of Object.keys(optRules)) optRules[k] = o ? !!o[k] : false;
+    _f5_applySnapshot(d);
+    buildOptRulesChecklist();
+    refreshOptRuleTints();
+};
+
+const _f5_doNewGame = _doNewGame;
+_doNewGame = function(opts) {
+    for (const k of Object.keys(optRules)) optRules[k] = false;
+    buildOptRulesChecklist();
+    _f5_doNewGame(opts);
+    openHelpersPanel();          // New Game lands in Setup
+};
+
+// Return to Setup also opens the panel.
+const _f5_doEditSetup = _doEditSetup;
+_doEditSetup = function() {
+    _f5_doEditSetup();
+    openHelpersPanel();
+};
+
+// Page load that lands in Setup opens the panel. This listener is
+// registered after the engine's, so the phase (restored save, deck,
+// or fresh board) is settled by the time it runs.
+window.addEventListener('load', () => {
+    if (gamePhase === 'setup') openHelpersPanel();
+});
+
+// The module's own stylesheet — one rule, injected from here so the
+// feature stays self-contained (deleting the module removes it too).
+(function () {
+    if (!document.head) return;   // test sandbox has no <head>; browser always does
+    const st = document.createElement('style');
+    st.textContent =
+        'td.optrule-silent-x { background-color: color-mix(in srgb, var(--mark-cross-fg) 25%, transparent); }\n' +
+        'td.optrule-silent-check { background-color: color-mix(in srgb, var(--mark-check-fg) 25%, transparent); }';
+    document.head.appendChild(st);
+})();
 
 // Draw the checklist once at load (script runs after the panel exists).
 buildOptRulesChecklist();
@@ -5517,6 +6128,8 @@ function hideWhyTip() {
 function whyTextFor(card) {
     if (optRules.yesTint && isSolutionCandidate(card))
         return 'Must be part of the answer — every player has ✗ on this row.';
+    if (optRules.lastCard && isLastCardStanding(card))
+        return 'Must be part of the answer — every other card in this category is ruled out.';
     if (optRules.noTint && isCardRuledOut(card)) {
         if (roomChecked.has(card)) return 'Ruled out — it’s on the board.';
         for (let c = 0; c < MAX_PLAYERS; c++) {
@@ -5526,6 +6139,11 @@ function whyTextFor(card) {
                 return 'Ruled out — ' + name + ' holds this card.';
             }
         }
+    }
+    if (optRules.showElim) {
+        const hit = showElimHolderFor(card);
+        if (hit) return 'Ruled out — ' + hit.name + ' must hold this card: they showed it on turn '
+                      + hit.turn + ' and have ✗ on the other asked cards.';
     }
     return '';
 }
@@ -5537,9 +6155,8 @@ function showWhyTip(x, y, text) {
     el.style.cssText = 'padding:6px 12px; max-width:260px; min-width:0;';
     el.textContent = text;
     document.body.appendChild(el);
-    // Clamp inside the window, like the menu does.
-    el.style.left = Math.min(x + 10, window.innerWidth  - el.offsetWidth  - 8) + 'px';
-    el.style.top  = Math.min(y + 10, window.innerHeight - el.offsetHeight - 8) + 'px';
+    // Place near the cursor (zoom-corrected), kept on-screen.
+    positionPopupAtCursor(el, x + 10, y + 10, 8);
     _whyTipEl = el;
     _whyTipTimer = setTimeout(hideWhyTip, 5000);
 }
