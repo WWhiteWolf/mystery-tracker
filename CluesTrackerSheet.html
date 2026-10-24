@@ -264,6 +264,9 @@
         thead th:first-child { text-align:left; padding-left:8px; width:12%; }
         thead th:nth-child(n+4) { width:13.333%; overflow:hidden; }
         thead th.in-play { cursor:grab; }
+        thead th[id^="th"] { cursor:grab; }
+        thead th input.ph:not(:disabled),
+        thead th input.cc:not(:disabled) { cursor:text; }
         thead th.drag-col, td.drag-col { outline:2px solid var(--gold); outline-offset:-2px; }
         thead th.drag-col { position:relative; z-index:3; cursor:grabbing; }
         td.drag-col { position:relative; z-index:2; }
@@ -750,6 +753,17 @@
             display:flex; align-items:center; justify-content:center; gap:2px;
             width:100%; min-width:0; overflow:hidden;
         }
+        thead th .col-grab {
+            flex:0 0 auto; width:1.1em; align-self:stretch;
+            display:flex; align-items:center; justify-content:center;
+            cursor:grab; user-select:none; opacity:0.95;
+            font-size:0.95rem; line-height:1;
+            text-shadow:
+                0 0 1px rgba(0,0,0,0.55),
+                0 1px 1px rgba(0,0,0,0.35),
+                0 0 0 1px rgba(245,237,224,0.35);
+        }
+        thead th.drag-col .col-grab { cursor:grabbing; }
         thead th input.cc {
             width:2.2em; flex:0 0 auto; background:transparent; border:none;
             border-bottom:1px dashed rgba(245,237,224,0.4);
@@ -938,12 +952,12 @@
                         <th>Card</th>
                         <th class="sum-col" title="Summary — click a card's ∑ cell to cycle a marker: ✕ (held by a known player) → ✓ (the envelope holds it) → blank. Play mode only.">∑</th>
                         <th class="room-col" title="Room — for the 2-player variant where cards lie face-down on the board. Click to mark a card you've seen in a room (it can't be the secret, and no player holds it).">🏠</th>
-                        <th id="th0"><div class="header-inner"><input class="ph" id="p1h" type="text" placeholder="Player 1" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p1c" type="text" maxlength="2" placeholder="?" spellcheck="false" inputmode="numeric" oninput="onCardCountChange(0)"><span class="cc-display" id="p1cd"></span><span>)</span></div></th>
-                        <th id="th1"><div class="header-inner"><input class="ph" id="p2h" type="text" placeholder="Player 2" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p2c" type="text" maxlength="2" placeholder="?" spellcheck="false" inputmode="numeric" oninput="onCardCountChange(1)"><span class="cc-display" id="p2cd"></span><span>)</span></div></th>
-                        <th id="th2"><div class="header-inner"><input class="ph" id="p3h" type="text" placeholder="Player 3" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p3c" type="text" maxlength="2" placeholder="?" spellcheck="false" inputmode="numeric" oninput="onCardCountChange(2)"><span class="cc-display" id="p3cd"></span><span>)</span></div></th>
-                        <th id="th3"><div class="header-inner"><input class="ph" id="p4h" type="text" placeholder="Player 4" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p4c" type="text" maxlength="2" placeholder="?" spellcheck="false" inputmode="numeric" oninput="onCardCountChange(3)"><span class="cc-display" id="p4cd"></span><span>)</span></div></th>
-                        <th id="th4"><div class="header-inner"><input class="ph" id="p5h" type="text" placeholder="Player 5" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p5c" type="text" maxlength="2" placeholder="?" spellcheck="false" inputmode="numeric" oninput="onCardCountChange(4)"><span class="cc-display" id="p5cd"></span><span>)</span></div></th>
-                        <th id="th5"><div class="header-inner"><input class="ph" id="p6h" type="text" placeholder="Player 6" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p6c" type="text" maxlength="2" placeholder="?" spellcheck="false" inputmode="numeric" oninput="onCardCountChange(5)"><span class="cc-display" id="p6cd"></span><span>)</span></div></th>
+                        <th id="th0"><div class="header-inner"><span class="col-grab" aria-hidden="true">✋</span><input class="ph" id="p1h" type="text" placeholder="Player 1" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p1c" type="text" maxlength="2" placeholder="?" spellcheck="false" inputmode="numeric" oninput="onCardCountChange(0)"><span class="cc-display" id="p1cd"></span><span>)</span></div></th>
+                        <th id="th1"><div class="header-inner"><span class="col-grab" aria-hidden="true">✋</span><input class="ph" id="p2h" type="text" placeholder="Player 2" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p2c" type="text" maxlength="2" placeholder="?" spellcheck="false" inputmode="numeric" oninput="onCardCountChange(1)"><span class="cc-display" id="p2cd"></span><span>)</span></div></th>
+                        <th id="th2"><div class="header-inner"><span class="col-grab" aria-hidden="true">✋</span><input class="ph" id="p3h" type="text" placeholder="Player 3" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p3c" type="text" maxlength="2" placeholder="?" spellcheck="false" inputmode="numeric" oninput="onCardCountChange(2)"><span class="cc-display" id="p3cd"></span><span>)</span></div></th>
+                        <th id="th3"><div class="header-inner"><span class="col-grab" aria-hidden="true">✋</span><input class="ph" id="p4h" type="text" placeholder="Player 4" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p4c" type="text" maxlength="2" placeholder="?" spellcheck="false" inputmode="numeric" oninput="onCardCountChange(3)"><span class="cc-display" id="p4cd"></span><span>)</span></div></th>
+                        <th id="th4"><div class="header-inner"><span class="col-grab" aria-hidden="true">✋</span><input class="ph" id="p5h" type="text" placeholder="Player 5" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p5c" type="text" maxlength="2" placeholder="?" spellcheck="false" inputmode="numeric" oninput="onCardCountChange(4)"><span class="cc-display" id="p5cd"></span><span>)</span></div></th>
+                        <th id="th5"><div class="header-inner"><span class="col-grab" aria-hidden="true">✋</span><input class="ph" id="p6h" type="text" placeholder="Player 6" spellcheck="false" oninput="onNameChange()"><span>(</span><input class="cc" id="p6c" type="text" maxlength="2" placeholder="?" spellcheck="false" inputmode="numeric" oninput="onCardCountChange(5)"><span class="cc-display" id="p6cd"></span><span>)</span></div></th>
                     </tr>
                 </thead>
                 <tbody id="cardBody"></tbody>
@@ -2343,13 +2357,13 @@ function setMeColExplicit(col) {
     showStatus('You are ' + suspectName + '.', 'var(--red-lt)');
 }
 
-// Returns ordered list of col indices that have non-empty names entered
+// Named columns, in the order they are sitting when Setup ends.
 function buildTurnOrder() {
     const names = getPlayerNames();
     const order = [];
-    for (let i = 0; i < names.length; i++) {
-        if (names[i] && names[i].trim() !== '') order.push(i);
-    }
+    playerColOrder.forEach(col => {
+        if (names[col] && names[col].trim() !== '') order.push(col);
+    });
     return order;
 }
 
@@ -2669,9 +2683,9 @@ function onCellClick(e) {
 
 // ═══════════════════════════════════════════════════════════════════
 // ── Clicking a player name header cell = mark showed (commits immediately) ──
-// Player columns can be dragged by their headings during play.
-// The drag changes where a column sits. It does not change whose
-// turn comes next — that stays the order the names were typed.
+// Player columns can be dragged by their headings in Setup and during play.
+// The drag changes where a column sits. The turn order is taken once,
+// from that arrangement, when Setup ends and the game starts.
 const PLAYER_COL_ORDER_KEY = 'ctsPlayerColOrder';
 let playerColOrder = (function () {
     try {
@@ -2694,7 +2708,7 @@ function playerColumnCells(col) {
 }
 
 function applyPlayerColOrder() {
-    const order = (gamePhase === 'play') ? playerColOrder : [...Array(MAX_PLAYERS).keys()];
+    const order = playerColOrder;
     const header = document.getElementById('headerRow');
     if (header) {
         order.forEach(col => {
@@ -2710,14 +2724,29 @@ function applyPlayerColOrder() {
     });
 }
 
-function seatUnderPointer(x, dragCol) {
-    for (let i = 0; i < playerColOrder.length; i++) {
-        const col = playerColOrder[i];
-        if (col === dragCol) continue;
-        const th = document.getElementById('th' + col);
-        if (!th) continue;
-        const r = th.getBoundingClientRect();
-        if (x >= r.left && x < r.right) return i;
+// A dragged column settles into a neighbor's seat when its center
+// enters the middle third of that column — a window around the
+// mid-line, not a thin edge and not the exact center alone.
+function seatLinedUpWith(centerX, dragCol) {
+    const idx = playerColOrder.indexOf(dragCol);
+    if (idx < 0) return -1;
+    if (idx < playerColOrder.length - 1) {
+        const th = document.getElementById('th' + playerColOrder[idx + 1]);
+        if (th) {
+            const r = th.getBoundingClientRect();
+            const mid = (r.left + r.right) / 2;
+            const halfWindow = (r.right - r.left) / 6;
+            if (centerX >= mid - halfWindow) return idx + 1;
+        }
+    }
+    if (idx > 0) {
+        const th = document.getElementById('th' + playerColOrder[idx - 1]);
+        if (th) {
+            const r = th.getBoundingClientRect();
+            const mid = (r.left + r.right) / 2;
+            const halfWindow = (r.right - r.left) / 6;
+            if (centerX <= mid + halfWindow) return idx - 1;
+        }
     }
     return -1;
 }
@@ -2728,17 +2757,7 @@ function wirePlayerColumnDrag() {
     header.dataset.dragWired = '1';
     let drag = null;
 
-    header.addEventListener('pointerdown', e => {
-        if (gamePhase !== 'play' || e.button !== 0) return;
-        const th = e.target.closest('th');
-        if (!th || !th.id || !th.id.startsWith('th')) return;
-        const col = parseInt(th.id.slice(2), 10);
-        if (isNaN(col)) return;
-        drag = { col, anchorX: e.clientX, moved: false, cells: playerColumnCells(col), pointerId: e.pointerId };
-        try { th.setPointerCapture(e.pointerId); } catch (err) {}
-    });
-
-    header.addEventListener('pointermove', e => {
+    const onMove = e => {
         if (!drag || e.pointerId !== drag.pointerId) return;
         const dx = e.clientX - drag.anchorX;
         if (!drag.moved) {
@@ -2747,8 +2766,12 @@ function wirePlayerColumnDrag() {
             drag.cells.forEach(c => c.classList.add('drag-col'));
         }
         drag.cells.forEach(c => { c.style.transform = 'translateX(' + dx + 'px)'; });
+        const held = document.getElementById('th' + drag.col);
+        if (!held) return;
+        const heldBox = held.getBoundingClientRect();
+        const centerX = (heldBox.left + heldBox.right) / 2;
         const idx = playerColOrder.indexOf(drag.col);
-        const seat = seatUnderPointer(e.clientX, drag.col);
+        const seat = seatLinedUpWith(centerX, drag.col);
         if (seat >= 0 && seat !== idx) {
             playerColOrder.splice(idx, 1);
             playerColOrder.splice(seat, 0, drag.col);
@@ -2756,18 +2779,39 @@ function wirePlayerColumnDrag() {
             drag.anchorX = e.clientX;
             applyPlayerColOrder();
         }
-    });
+    };
 
     const finish = e => {
         if (!drag || (e && e.pointerId !== drag.pointerId)) return;
         const didMove = drag.moved;
+        const openField = drag.openField;
         drag.cells.forEach(c => { c.style.transform = ''; c.classList.remove('drag-col'); });
         drag = null;
-        if (!didMove) return;
+        if (!didMove) {
+            if (openField) openField.focus();
+            return;
+        }
+        const sel = window.getSelection();
+        if (sel) sel.removeAllRanges();
         savePlayerColOrder();
         swallowHeaderClick = true;
         setTimeout(() => { swallowHeaderClick = false; }, 0);
     };
+
+    header.addEventListener('pointerdown', e => {
+        if (e.button !== 0) return;
+        const th = e.target.closest('th');
+        if (!th || !th.id || !th.id.startsWith('th')) return;
+        const col = parseInt(th.id.slice(2), 10);
+        if (isNaN(col)) return;
+        const field = e.target.closest('input');
+        const openField = (field && !field.disabled) ? field : null;
+        drag = { col, anchorX: e.clientX, moved: false, cells: playerColumnCells(col), pointerId: e.pointerId, openField };
+        try { th.setPointerCapture(e.pointerId); } catch (err) {}
+        if (openField) e.preventDefault();
+    });
+
+    header.addEventListener('pointermove', onMove);
     header.addEventListener('pointerup', finish);
     header.addEventListener('pointercancel', finish);
 }
@@ -4061,7 +4105,7 @@ function setGuideContent() {
         <p>There are no steps. Change what you need, in any order, then start the game. Once the game has started, those edits close. New Game is how you come back to them.</p>
         <ul>
             <li><strong>Cards.</strong> You can change any card's name. The category names stay as they are. Cards are not added or removed.</li>
-            <li><strong>Players.</strong> Type each name in a column heading, from left to right. That order is the turn order. In the parentheses, type how many cards that player was dealt. A player with a name and no count keeps the game closed. A column with no name stays on the page and is left out of the game.</li>
+            <li><strong>Players.</strong> Type each name in a column heading. You can drag a column by the palm on the left of the name, or by the heading. The order the named columns are in when you start the game is the turn order. In the parentheses, type how many cards that player was dealt. A player with a name and no count keeps the game closed. A column with no name stays on the page and is left out of the game.</li>
             <li><strong>Me.</strong> Right-click your own column heading and choose <strong>"🙋 I am [your name]"</strong>. That column turns green. Click the cells for the cards you hold. A ✓ appears, and the number of checks has to match your card count.</li>
             <li><strong>Start Game.</strong> You need at least two players, counting yourself. Three cards are in the envelope. The other 18 go to the players or the board. Start Game opens when the counts add up to 18, so nothing is on the board, or when every seated player has the same count and the cards left over are on the board. Next and Undo then run the game.</li>
         </ul>
@@ -4069,7 +4113,7 @@ function setGuideContent() {
         <h3>The sheet during play</h3>
         <p>Your column starts with a ✓ for each card you hold and a ✗ for each card you do not. Every other player is crossed off the cards you hold. The first player's column is highlighted.</p>
         <p>The line under the title shows the turn, and whose turn it is. The bar above the grid says what is happening now. A tap in the wrong place puts a hint on the turn line, and the hint stays until it clears.</p>
-        <p>During play you can drag a column by its heading. The column only changes place. The turn order does not follow the drag. The card names, the ∑ column, and the 🏠 column stay where they are.</p>
+        <p>You can drag a column in Setup and during play, by the palm on the left of the name or by the heading. After the game has started, a drag only changes place. The turn order does not follow that drag. The card names, the ∑ column, and the 🏠 column stay where they are.</p>
 
         <h3>A turn</h3>
         <ul>
